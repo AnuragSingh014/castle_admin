@@ -69,7 +69,7 @@ const handleApproveFormCompletion = async (userId) => {
       for (const section of sectionsToApprove) {
         console.log(`Approving section: ${section}`);
         
-        const response = await fetch(`http://localhost:5000/api/admin/users/${userId}/approve`, {
+        const response = await fetch(`https://castle-backend.onrender.com/api/admin/users/${userId}/approve`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -118,7 +118,7 @@ const handleApproveFormCompletion = async (userId) => {
   const refreshUserData = async () => {
     try {
       const token = localStorage.getItem('admin_token');
-      const response = await fetch(`http://localhost:5000/api/admin/users/${userId}`, {
+      const response = await fetch(`https://castle-backend.onrender.com/api/admin/users/${userId}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -210,7 +210,7 @@ const handleApproveFormCompletion = async (userId) => {
         }
 
         // Fetch user details and dashboard data
-        const response = await fetch(`http://localhost:5000/api/admin/users/${userId}`, {
+        const response = await fetch(`https://castle-backend.onrender.com/api/admin/users/${userId}`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -260,7 +260,7 @@ const handleApproveFormCompletion = async (userId) => {
     
     try {
       const token = localStorage.getItem('admin_token');
-      const response = await fetch(`http://localhost:5000/api/admin/users/${userId}/website-display`, {
+      const response = await fetch(`https://castle-backend.onrender.com/api/admin/users/${userId}/website-display`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
