@@ -384,6 +384,7 @@ const renderSectionContent = () => {
       data={userDashboardData?.[selectedSection]} 
       userInfo={userInfo}
       loading={loading}
+      userId={userId}
     />
   );
 };
