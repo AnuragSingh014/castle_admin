@@ -54,7 +54,7 @@ const CompactDealStatus = ({
 
   const dealStatuses = [
     { value: 'looking', label: 'Looking for Investment', amount: null },
-    { value: 'partial', label: 'Deal Partially Closed', amount: -100 },
+    { value: 'partial', label: 'Partially Closed', amount: -100 },
     { value: 'closed', label: 'Deal Closed', amount: -200 }
   ];
 
@@ -135,7 +135,7 @@ const Details = ({ userId, onBack }) => {
     setActionLoading(true);
     try {
       const token = localStorage.getItem('admin_token');
-      const response = await fetch(`http://localhost:5000/api/admin/users/${userId}/public-amount`, {
+      const response = await fetch(`https://castle-backend.onrender.com/api/admin/users/${userId}/public-amount`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -179,7 +179,7 @@ const Details = ({ userId, onBack }) => {
       for (const section of sectionsToApprove) {
         console.log(`Approving section: ${section}`);
         
-        const response = await fetch(`http://localhost:5000/api/admin/users/${userId}/approve`, {
+        const response = await fetch(`https://castle-backend.onrender.com/api/admin/users/${userId}/approve`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -228,7 +228,7 @@ const Details = ({ userId, onBack }) => {
   const refreshUserData = async () => {
     try {
       const token = localStorage.getItem('admin_token');
-      const response = await fetch(`http://localhost:5000/api/admin/users/${userId}`, {
+      const response = await fetch(`https://castle-backend.onrender.com/api/admin/users/${userId}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -315,7 +315,7 @@ const Details = ({ userId, onBack }) => {
         }
 
         // Fetch user details and dashboard data
-        const response = await fetch(`http://localhost:5000/api/admin/users/${userId}`, {
+        const response = await fetch(`https://castle-backend.onrender.com/api/admin/users/${userId}`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -364,7 +364,7 @@ const Details = ({ userId, onBack }) => {
     
     try {
       const token = localStorage.getItem('admin_token');
-      const response = await fetch(`http://localhost:5000/api/admin/users/${userId}/website-display`, {
+      const response = await fetch(`https://castle-backend.onrender.com/api/admin/users/${userId}/website-display`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,

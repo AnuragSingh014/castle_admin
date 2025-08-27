@@ -40,7 +40,7 @@ const CompanyReferencesView = ({ data, userInfo, loading,userId }) => {
         throw new Error('No authentication token found');
       }
 
-      const response = await fetch(`http://localhost:5000/api/admin/users/${userId}/pdf/download`, {
+      const response = await fetch(`https://castle-backend.onrender.com/api/admin/users/${userId}/pdf/download`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`
