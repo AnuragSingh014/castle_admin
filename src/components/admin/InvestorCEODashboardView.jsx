@@ -38,7 +38,7 @@ const InvestorCEODashboardView = ({ investorId, loading }) => {
         setDataLoading(true);
         setError('');
         
-        const response = await fetch(`http://localhost:5000/api/investor-dashboard/${investorId}`);
+        const response = await fetch(`https://castle-backend.onrender.com/api/investor-dashboard/${investorId}`);
         
         if (!response.ok) {
           throw new Error('Failed to fetch dashboard data');

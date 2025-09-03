@@ -139,7 +139,7 @@ const Details = ({ userId, onBack }) => {
     setActionLoading(true);
     try {
       const token = localStorage.getItem('admin_token');
-      const response = await fetch(`http://localhost:5000/api/admin/users/${userId}/public-amount`, {
+      const response = await fetch(`https://castle-backend.onrender.com/api/admin/users/${userId}/public-amount`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -183,7 +183,7 @@ const Details = ({ userId, onBack }) => {
       for (const section of sectionsToApprove) {
         console.log(`Approving section: ${section}`);
         
-        const response = await fetch(`http://localhost:5000/api/admin/users/${userId}/approve`, {
+        const response = await fetch(`https://castle-backend.onrender.com/api/admin/users/${userId}/approve`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -232,7 +232,7 @@ const Details = ({ userId, onBack }) => {
   const refreshUserData = async () => {
     try {
       const token = localStorage.getItem('admin_token');
-      const response = await fetch(`http://localhost:5000/api/admin/users/${userId}`, {
+      const response = await fetch(`https://castle-backend.onrender.com/api/admin/users/${userId}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -334,7 +334,7 @@ const Details = ({ userId, onBack }) => {
         }
 
         // Fetch user details and dashboard data
-        const response = await fetch(`http://localhost:5000/api/admin/users/${userId}`, {
+        const response = await fetch(`https://castle-backend.onrender.com/api/admin/users/${userId}`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -383,7 +383,7 @@ const Details = ({ userId, onBack }) => {
     
     try {
       const token = localStorage.getItem('admin_token');
-      const response = await fetch(`http://localhost:5000/api/admin/users/${userId}/website-display`, {
+      const response = await fetch(`https://castle-backend.onrender.com/api/admin/users/${userId}/website-display`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -607,17 +607,7 @@ const Details = ({ userId, onBack }) => {
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
-                      <Shield className="w-5 h-5 text-indigo-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-500">Completion</p>
-                      <p className="font-medium">
-                        {userDashboardData?.completionPercentage || 0}%
-                      </p>
-                    </div>
-                  </div>
+                  
                 </div>
 
                 {/* Action Buttons - Compact Layout */}
@@ -667,24 +657,7 @@ const Details = ({ userId, onBack }) => {
                   </div>
 
                   {/* Status Indicators */}
-                  <div className="flex items-center space-x-4">
-                    <div className="flex items-center space-x-2">
-                      <div className={`w-2 h-2 rounded-full ${
-                        userDashboardData?.completionPercentage >= 100 ? 'bg-green-500' : 'bg-yellow-500'
-                      }`}></div>
-                      <span className="text-xs text-gray-600">
-                        {userDashboardData?.completionPercentage >= 100 ? 'Complete' : 'Incomplete'}
-                      </span>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <div className={`w-2 h-2 rounded-full ${
-                        userDashboardData?.isDisplayedOnWebsite ? 'bg-blue-500' : 'bg-gray-400'
-                      }`}></div>
-                      <span className="text-xs text-gray-600">
-                        {userDashboardData?.isDisplayedOnWebsite ? 'On Website' : 'Not Published'}
-                      </span>
-                    </div>
-                  </div>
+                  
                 </div>
               </CardContent>
             </Card>
@@ -725,21 +698,7 @@ const Details = ({ userId, onBack }) => {
                         >
                           <div className="flex items-start space-x-3 w-full min-w-0">
                             {/* Icon */}
-                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                              isSelected 
-                                ? "bg-white/20" 
-                                : status === 'completed' 
-                                  ? "bg-green-100" 
-                                  : "bg-gray-100"
-                            }`}>
-                              <Icon className={`w-4 h-4 ${
-                                isSelected 
-                                  ? "text-white" 
-                                  : status === 'completed' 
-                                    ? "text-green-600" 
-                                    : "text-gray-400"
-                              }`} />
-                            </div>
+                            
                             
                             {/* Content */}
                             <div className="flex-1 min-w-0">
@@ -749,9 +708,7 @@ const Details = ({ userId, onBack }) => {
                                 }`}>
                                   {section.title}
                                 </h4>
-                                <div className="flex-shrink-0 ml-2">
-                                  {getStatusIcon(status)}
-                                </div>
+                                
                               </div>
                               
                               <p className={`text-xs leading-relaxed mb-2 ${
@@ -760,9 +717,7 @@ const Details = ({ userId, onBack }) => {
                                 {section.description}
                               </p>
                               
-                              <div className="flex justify-start">
-                                {getStatusBadge(status)}
-                              </div>
+                              
                             </div>
                           </div>
                         </Button>

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,7 +21,11 @@ import {
   AlertCircle,
   MoreHorizontal,
   Building2,
-  TrendingUp
+  TrendingUp,
+  Upload,
+  CheckCircle2,
+  FileImage,
+  Download // ✅ ADD DOWNLOAD ICON
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -32,7 +36,7 @@ import {
 
 // Import both detail components
 import Details from './Details';
-import InvestorDetails from './InvestorDetails'; // Add this import
+import InvestorDetails from './InvestorDetails';
 
 const UserInfo = () => {
   const navigate = useNavigate();
@@ -44,7 +48,14 @@ const UserInfo = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [adminInfo, setAdminInfo] = useState(null);
   const [viewingUser, setViewingUser] = useState(null);
-  const [viewingUserType, setViewingUserType] = useState(null); // Add this state
+  const [viewingUserType, setViewingUserType] = useState(null);
+  
+  // Signature upload states
+  const [signatureFile, setSignatureFile] = useState(null);
+  const [signatureUploading, setSignatureUploading] = useState(false);
+  const [signatureStatus, setSignatureStatus] = useState({ type: '', message: '' });
+  const [hasSignature, setHasSignature] = useState(false);
+  const fileInputRef = useRef(null);
 
   // Get admin info from localStorage
   useEffect(() => {
@@ -56,6 +67,32 @@ const UserInfo = () => {
     } catch (err) {
       console.error('Error parsing admin info:', err);
     }
+  }, []);
+
+  // Check for existing admin signature
+  useEffect(() => {
+    const checkAdminSignature = async () => {
+      try {
+        const token = localStorage.getItem('admin_token');
+        if (!token) return;
+
+        const response = await fetch('https://castle-backend.onrender.com/api/admin/signature', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setHasSignature(!!data.signature);
+        }
+      } catch (err) {
+        console.error('Error checking admin signature:', err);
+      }
+    };
+
+    checkAdminSignature();
   }, []);
 
   // Fetch users with authentication
@@ -70,7 +107,7 @@ const UserInfo = () => {
           throw new Error('No authentication token found');
         }
 
-        const response = await fetch('http://localhost:5000/api/admin/users', {
+        const response = await fetch('https://castle-backend.onrender.com/api/admin/users', {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -111,7 +148,7 @@ const UserInfo = () => {
           throw new Error('No authentication token found');
         }
 
-        const response = await fetch('http://localhost:5000/api/admin/investors', {
+        const response = await fetch('https://castle-backend.onrender.com/api/admin/investors', {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -161,16 +198,164 @@ const UserInfo = () => {
     navigate('/login', { replace: true });
   };
 
-  // Updated handle view user details - store both ID and type
+  // Handle view user details
   const handleViewUser = (userId, userType) => {
     setViewingUser(userId);
     setViewingUserType(userType);
   };
 
-  // Updated back handler - clear both states
+  // Handle back to list
   const handleBackToList = () => {
     setViewingUser(null);
     setViewingUserType(null);
+  };
+
+  // ✅ DOWNLOAD MANDATE HANDLER (Client-side PDF generation)
+  const handleDownloadMandate = async (userId) => {
+    if (!userId) {
+      setSignatureStatus({ type: 'error', message: 'Please select a user to download mandate' });
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem('admin_token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      setSignatureStatus({ type: 'info', message: 'Fetching e-mandate data...' });
+
+      // ✅ Fetch the e-mandate data from backend using admin auth
+      const response = await fetch(`https://castle-backend.onrender.com/api/dashboard/${userId}/emandate-info`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error('Company signature not found. Please ask the company to upload their signature first.');
+        }
+        throw new Error('Failed to fetch e-mandate data');
+      }
+
+      const result = await response.json();
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to get e-mandate data');
+      }
+
+      setSignatureStatus({ type: 'info', message: 'Generating complete mandate PDF...' });
+
+      // ✅ Dynamically import the client-side PDF generator
+      const { generateEmandatePDF } = await import('../lib/generateEmandate');
+      
+      // ✅ Generate PDF on client-side using the fetched data
+      const pdfBytes = await generateEmandatePDF(result.data);
+      
+      // ✅ Create download link and trigger download
+      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      
+      // Generate filename with company name and date
+      const companyName = result.data.companyName || 'Company';
+      const founderName = result.data.founderName || 'Founder';
+      const currentDate = new Date().toISOString().split('T')[0];
+      a.download = `E-Mandate_${companyName.replace(/[^a-zA-Z0-9]/g, '_')}_${founderName.replace(/[^a-zA-Z0-9]/g, '_')}_${currentDate}.pdf`;
+      
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      
+      setSignatureStatus({ type: 'success', message: 'Complete e-mandate downloaded successfully!' });
+      setTimeout(() => setSignatureStatus({ type: '', message: '' }), 3000);
+
+    } catch (err) {
+      console.error('Download mandate error:', err);
+      setSignatureStatus({ type: 'error', message: err.message || 'Failed to download e-mandate' });
+      setTimeout(() => setSignatureStatus({ type: '', message: '' }), 5000);
+    }
+  };
+
+  // Signature upload handlers
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        setSignatureStatus({ type: 'error', message: 'Please select an image file' });
+        return;
+      }
+      
+      // Validate file size (5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setSignatureStatus({ type: 'error', message: 'File size must be less than 5MB' });
+        return;
+      }
+
+      setSignatureFile(file);
+      setSignatureStatus({ type: '', message: '' });
+    }
+  };
+
+  const handleSignatureUpload = async () => {
+    if (!signatureFile) {
+      setSignatureStatus({ type: 'error', message: 'Please select a signature file first' });
+      return;
+    }
+
+    setSignatureUploading(true);
+    setSignatureStatus({ type: '', message: '' });
+
+    try {
+      const token = localStorage.getItem('admin_token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      const formData = new FormData();
+      formData.append('signature', signatureFile);
+
+      const response = await fetch('https://castle-backend.onrender.com/api/admin/upload-signature', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to upload signature');
+      }
+
+      const data = await response.json();
+      setSignatureStatus({ type: 'success', message: 'Signature uploaded successfully!' });
+      setHasSignature(true);
+      setSignatureFile(null);
+      
+      // Clear file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+
+      setTimeout(() => {
+        setSignatureStatus({ type: '', message: '' });
+      }, 3000);
+
+    } catch (err) {
+      console.error('Signature upload error:', err);
+      setSignatureStatus({ type: 'error', message: err.message });
+      setTimeout(() => {
+        setSignatureStatus({ type: '', message: '' });
+      }, 5000);
+    } finally {
+      setSignatureUploading(false);
+    }
   };
 
   // Get user initials for avatar
@@ -258,6 +443,70 @@ const UserInfo = () => {
                       <span>Investors</span>
                     </button>
                   </div>
+
+                  {/* Signature Upload Section */}
+                  <div className="flex items-center space-x-3 bg-slate-100 rounded-lg p-2">
+                    <div className="flex items-center space-x-2">
+                      <div className={`w-8 h-8 rounded-md flex items-center justify-center ${
+                        hasSignature ? 'bg-green-100' : 'bg-orange-100'
+                      }`}>
+                        {hasSignature ? (
+                          <CheckCircle2 className="w-4 h-4 text-green-600" />
+                        ) : (
+                          <FileImage className="w-4 h-4 text-orange-600" />
+                        )}
+                      </div>
+                      <div className="text-sm">
+                        <p className="font-medium text-slate-700">
+                          {hasSignature ? 'Signature Added' : 'Add Signature'}
+                        </p>
+                        {signatureFile && (
+                          <p className="text-xs text-slate-500 truncate max-w-24">
+                            {signatureFile.name}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center space-x-2">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileChange}
+                        className="hidden"
+                        id="signature-upload"
+                      />
+                      <Label htmlFor="signature-upload">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="cursor-pointer"
+                          asChild
+                        >
+                          <span className="flex items-center space-x-1">
+                            <Upload className="w-3 h-3" />
+                            <span className="text-xs">Choose</span>
+                          </span>
+                        </Button>
+                      </Label>
+                      
+                      {signatureFile && (
+                        <Button
+                          onClick={handleSignatureUpload}
+                          disabled={signatureUploading}
+                          size="sm"
+                          className="bg-blue-600 hover:bg-blue-700 text-white"
+                        >
+                          {signatureUploading ? (
+                            <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin" />
+                          ) : (
+                            <span className="text-xs">Upload</span>
+                          )}
+                        </Button>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -270,6 +519,32 @@ const UserInfo = () => {
                 <span>Logout</span>
               </Button>
             </div>
+
+            {/* Status Alert */}
+            {signatureStatus.message && (
+              <Alert className={`${
+                signatureStatus.type === 'success' 
+                  ? 'border-green-200 bg-green-50' 
+                  : signatureStatus.type === 'info'
+                  ? 'border-blue-200 bg-blue-50'
+                  : 'border-red-200 bg-red-50'
+              }`}>
+                {signatureStatus.type === 'success' ? (
+                  <CheckCircle2 className="h-4 w-4 text-green-600" />
+                ) : signatureStatus.type === 'info' ? (
+                  <Clock className="h-4 w-4 text-blue-600" />
+                ) : (
+                  <AlertCircle className="h-4 w-4 text-red-600" />
+                )}
+                <AlertDescription className={
+                  signatureStatus.type === 'success' ? 'text-green-800' 
+                  : signatureStatus.type === 'info' ? 'text-blue-800'
+                  : 'text-red-800'
+                }>
+                  {signatureStatus.message}
+                </AlertDescription>
+              </Alert>
+            )}
 
             {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -307,27 +582,7 @@ const UserInfo = () => {
                 </CardContent>
               </Card>
 
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                      <Clock className="w-6 h-6 text-purple-600" />
-                    </div>
-                    <div>
-                      <p className="text-2xl font-bold text-slate-800">
-                        {currentData.filter(u => {
-                          const created = new Date(u.createdAt);
-                          const today = new Date();
-                          const diffTime = Math.abs(today - created);
-                          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                          return diffDays <= 7;
-                        }).length}
-                      </p>
-                      <p className="text-slate-600">This Week</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              
             </div>
 
             {/* Main Content Card */}
@@ -401,7 +656,12 @@ const UserInfo = () => {
                           <TableHead className="font-semibold text-slate-700">Email</TableHead>
                           <TableHead className="font-semibold text-slate-700">Password</TableHead>
                           <TableHead className="font-semibold text-slate-700">Joined Date</TableHead>
-                          <TableHead className="font-semibold text-slate-700 text-center">Actions</TableHead>
+                          <TableHead className="font-semibold text-slate-700 text-center">
+                            Actions
+                            {selectedUserType === 'company' && (
+                              <span className="text-xs text-slate-500 block">View • Download</span>
+                            )}
+                          </TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
@@ -449,23 +709,33 @@ const UserInfo = () => {
                                   <span className="text-slate-700">{formatDate(item.createdAt)}</span>
                                 </div>
                               </TableCell>
+                              {/* ✅ UPDATED ACTIONS COLUMN WITH DOWNLOAD BUTTON */}
                               <TableCell className="py-4 text-center">
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="sm" className="w-8 h-8 p-0">
-                                      <MoreHorizontal className="w-4 h-4" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                    <DropdownMenuItem
-                                      onClick={() => handleViewUser(item._id, selectedUserType)}
-                                      className="cursor-pointer"
+                                <div className="flex items-center justify-center space-x-2">
+                                  {/* View Details Button */}
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleViewUser(item._id, selectedUserType)}
+                                    className="w-8 h-8 p-0 text-slate-600 hover:text-blue-700 hover:bg-blue-50"
+                                    title="View Details"
+                                  >
+                                    <Eye className="w-4 h-4" />
+                                  </Button>
+                                  
+                                  {/* ✅ Download Mandate Button - Only for Companies */}
+                                  {selectedUserType === 'company' && (
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => handleDownloadMandate(item._id)}
+                                      className="w-8 h-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
+                                      title="Download E-Mandate"
                                     >
-                                      <Eye className="w-4 h-4 mr-2" />
-                                      View Details
-                                    </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
+                                      <Download className="w-4 h-4" />
+                                    </Button>
+                                  )}
+                                </div>
                               </TableCell>
                             </TableRow>
                           ))

@@ -1,5 +1,5 @@
 // src/lib/adminApi.js (for your admin panel)
-const API_BASE_URL = 'http://localhost:5000/api/dashboard';
+const API_BASE_URL = 'https://castle-backend.onrender.com/api/dashboard';
 
 class AdminApiService {
   constructor() {

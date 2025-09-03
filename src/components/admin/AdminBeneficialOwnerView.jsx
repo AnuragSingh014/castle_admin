@@ -296,7 +296,7 @@ function AdminBeneficialOwnerView({ data, userName, userEmail }) {
                         <div>
                           <label className="text-xs font-medium text-slate-600">Percentage Ownership</label>
                           <p className="text-sm font-semibold flex items-center">
-                            <Percent className="w-3 h-3 mr-1" />
+                            
                             {owner.percentageOwnership}%
                           </p>
                         </div>
@@ -334,34 +334,7 @@ function AdminBeneficialOwnerView({ data, userName, userEmail }) {
                       </div>
                     </div>
 
-                    {/* Documents */}
-                    {owner.documents && owner.documents.length > 0 ? (
-                      <div>
-                        <h4 className="text-sm font-medium text-slate-700 mb-2 flex items-center">
-                          <FileText className="w-3 h-3 mr-1" />
-                          Documents ({owner.documents.length})
-                        </h4>
-                        <div className="bg-white p-3 rounded border">
-                          <div className="flex flex-wrap gap-2">
-                            {owner.documents.map((doc, docIndex) => (
-                              <Badge key={docIndex} variant="outline" className="text-xs">
-                                {doc.type || `Document ${docIndex + 1}`}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    ) : (
-                      <div>
-                        <h4 className="text-sm font-medium text-slate-700 mb-2 flex items-center">
-                          <FileText className="w-3 h-3 mr-1" />
-                          Documents
-                        </h4>
-                        <div className="bg-white p-3 rounded border">
-                          <p className="text-xs text-gray-500 italic">No documents uploaded</p>
-                        </div>
-                      </div>
-                    )}
+                    
                   </CardContent>
                 </Card>
               );
