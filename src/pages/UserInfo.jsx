@@ -70,7 +70,7 @@ const UserInfo = () => {
           throw new Error('No authentication token found');
         }
 
-        const response = await fetch('https://castle-backend.onrender.com/api/admin/users', {
+        const response = await fetch('http://localhost:5000/api/admin/users', {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -111,7 +111,7 @@ const UserInfo = () => {
           throw new Error('No authentication token found');
         }
 
-        const response = await fetch('https://castle-backend.onrender.com/api/admin/investors', {
+        const response = await fetch('http://localhost:5000/api/admin/investors', {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,

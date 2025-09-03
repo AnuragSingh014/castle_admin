@@ -99,15 +99,15 @@ function AdminDDFormView({ data, userName, userEmail }) {
               <p className="text-sm">{display(businessFields.legalStructure)}</p>
             </div>
             <div>
-              <label className="text-xs font-medium text-slate-600">Registration Number</label>
+              <label className="text-xs font-medium text-slate-600">Certificate of Incorporation</label>
               <p className="text-sm">{display(businessFields.registrationNumber)}</p>
             </div>
             <div>
-              <label className="text-xs font-medium text-slate-600">Tax Identification</label>
+              <label className="text-xs font-medium text-slate-600">GST Number</label>
               <p className="text-sm">{display(businessFields.taxIdentification)}</p>
             </div>
             <div>
-              <label className="text-xs font-medium text-slate-600">Business License</label>
+              <label className="text-xs font-medium text-slate-600">PAN Number</label>
               <p className="text-sm">{display(businessFields.businessLicense)}</p>
             </div>
           </div>

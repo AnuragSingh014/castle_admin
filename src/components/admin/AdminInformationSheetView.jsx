@@ -13,7 +13,8 @@ import {
   ShoppingCart, 
   Truck,
   Heart,
-  FileUser
+  FileUser,
+  UserCheck
 } from "lucide-react";
 
 /**
@@ -192,11 +193,111 @@ function AdminInformationSheetView({ data, userName, userEmail }) {
           </div>
         </section>
 
-        {/* Buyer Reference Section */}
+        {/* NEW: Buyer References Section - Array Display */}
+        {data.buyerReference && data.buyerReference.length > 0 && (
+          <section>
+            <div className="flex items-center space-x-2 mb-3">
+              <UserCheck className="w-4 h-4 text-indigo-600" />
+              <h3 className="font-semibold text-slate-800">Buyer References</h3>
+              <Badge variant="outline" className="text-xs">
+                {data.buyerReference.filter(ref => ref.name || ref.contactName).length} clients
+              </Badge>
+            </div>
+            <div className="space-y-3 bg-slate-50 p-4 rounded-lg">
+              {data.buyerReference.map((client, idx) => {
+                // Only display if at least one field has data
+                if (!client.name && !client.contactName && !client.phone && !client.address) {
+                  return null;
+                }
+                return (
+                  <Card key={idx} className="p-3 bg-white border border-indigo-200">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <UserCheck className="w-3 h-3 text-indigo-600" />
+                      <Badge variant="secondary" className="text-xs">Client {idx + 1}</Badge>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <label className="text-xs font-medium text-slate-600">Company Name</label>
+                        <p>{display(client.name)}</p>
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-slate-600">Contact Name</label>
+                        <p>{display(client.contactName)}</p>
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-slate-600">Phone</label>
+                        <p className="flex items-center">
+                          <Phone className="w-3 h-3 mr-1" />
+                          {display(client.phone)}
+                        </p>
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-slate-600">Address</label>
+                        <p>{display(client.address)}</p>
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {/* NEW: Supplier References Section - Array Display */}
+        {data.supplierReference && data.supplierReference.length > 0 && (
+          <section>
+            <div className="flex items-center space-x-2 mb-3">
+              <Truck className="w-4 h-4 text-green-600" />
+              <h3 className="font-semibold text-slate-800">Supplier References</h3>
+              <Badge variant="outline" className="text-xs">
+                {data.supplierReference.filter(ref => ref.name || ref.contactName).length} suppliers
+              </Badge>
+            </div>
+            <div className="space-y-3 bg-slate-50 p-4 rounded-lg">
+              {data.supplierReference.map((client, idx) => {
+                // Only display if at least one field has data
+                if (!client.name && !client.contactName && !client.phone && !client.address) {
+                  return null;
+                }
+                return (
+                  <Card key={idx} className="p-3 bg-white border border-green-200">
+                    <div className="flex items-center space-x-2 mb-2">
+                      <Truck className="w-3 h-3 text-green-600" />
+                      <Badge variant="secondary" className="text-xs">Supplier {idx + 1}</Badge>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <label className="text-xs font-medium text-slate-600">Company Name</label>
+                        <p>{display(client.name)}</p>
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-slate-600">Contact Name</label>
+                        <p>{display(client.contactName)}</p>
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-slate-600">Phone</label>
+                        <p className="flex items-center">
+                          <Phone className="w-3 h-3 mr-1" />
+                          {display(client.phone)}
+                        </p>
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-slate-600">Address</label>
+                        <p>{display(client.address)}</p>
+                      </div>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          </section>
+        )}
+
+        {/* OLD: Single Buyer Reference Section (keep for compatibility) */}
         <section>
           <div className="flex items-center space-x-2 mb-3">
             <ShoppingCart className="w-4 h-4 text-indigo-600" />
-            <h3 className="font-semibold text-slate-800">Buyer Reference</h3>
+            <h3 className="font-semibold text-slate-800">Primary Buyer Reference</h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-lg">
             <div>
@@ -221,11 +322,11 @@ function AdminInformationSheetView({ data, userName, userEmail }) {
           </div>
         </section>
 
-        {/* Supplier Reference Section */}
+        {/* OLD: Single Supplier Reference Section (keep for compatibility) */}
         <section>
           <div className="flex items-center space-x-2 mb-3">
             <Truck className="w-4 h-4 text-orange-600" />
-            <h3 className="font-semibold text-slate-800">Supplier Reference</h3>
+            <h3 className="font-semibold text-slate-800">Primary Supplier Reference</h3>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-slate-50 p-4 rounded-lg">
             <div>

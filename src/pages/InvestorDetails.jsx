@@ -123,7 +123,7 @@ const InvestorDetails = ({ investorId, onBack }) => {
   const refreshInvestorData = async () => {
     try {
       const token = localStorage.getItem('admin_token');
-      const response = await fetch(`https://castle-backend.onrender.com/api/admin/investors/${investorId}`, {
+      const response = await fetch(`http://localhost:5000/api/admin/investors/${investorId}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -198,13 +198,13 @@ const InvestorDetails = ({ investorId, onBack }) => {
         // Fetch BOTH endpoints in parallel
         // ✅ CORRECT:
         const [investorResponse, dashboardResponse] = await Promise.all([
-            fetch(`https://castle-backend.onrender.com/api/admin/investors/${investorId}`, {
+            fetch(`http://localhost:5000/api/admin/investors/${investorId}`, {
               headers: { 
                 'Authorization': `Bearer ${token}`,  // ← Make sure this is included
                 'Content-Type': 'application/json' 
               }
             }),
-            fetch(`https://castle-backend.onrender.com/api/investor-dashboard/${investorId}`)
+            fetch(`http://localhost:5000/api/investor-dashboard/${investorId}`)
           ]);
           
   

@@ -50,16 +50,19 @@ function AdminLoanDetailsView({ data, userName, userEmail }) {
   }
 
   // ✅ CALCULATE MISSING VARIABLES HERE
-  const rows = data.loans.map(loan => ({
-    bank: loan._frontend_data?.bank || 'N/A',
-    loanType: loan.loanType,
-    limit: loan.amount,
-    tenor: loan.term,
-    roi: loan.interestRate,
-    closingBal: loan._frontend_data?.closingBalance || 0,
-    year: loan._frontend_data?.yearOfSanction || (loan.repaymentSchedule?.startDate ? new Date(loan.repaymentSchedule.startDate).getFullYear() : 'N/A'),
-    emi: loan._frontend_data?.emi || 0
-  }));
+// ✅ CALCULATE MISSING VARIABLES HERE
+const rows = data.loans.map(loan => ({
+  bank: loan._frontend_data?.bank || 'N/A',
+  loanType: loan.loanType,
+  limit: loan.amount,
+  tenor: loan.term,
+  roi: loan.interestRate,
+  closingBal: loan._frontend_data?.closingBalance || 0,
+  year: loan._frontend_data?.yearOfSanction || 
+        (loan.repaymentSchedule?.startDate ? new Date(loan.repaymentSchedule.startDate).getFullYear() : 'N/A'),
+  emi: loan._frontend_data?.emi || 0
+}));
+
 
   // Calculate completion statistics
   const completedRows = rows.filter(row => columns.every(col => row[col.key] && row[col.key].toString().trim() !== "")).length;
@@ -163,17 +166,20 @@ function AdminLoanDetailsView({ data, userName, userEmail }) {
                     <tr key={idx} className={isComplete ? "bg-white" : "bg-slate-50"}>
                       <td className="px-3 py-1 border-b text-xs">{idx + 1}</td>
                       {columns.map(col => (
-                        <td key={col.key} className="px-3 py-1 border-b">
-                          {col.type === "number" && row[col.key]
-                            ? (
-                              <>
-                                {col.key === "roi"
-                                  ? `${parseFloat(row[col.key]).toFixed(2)}%`
-                                  : `₹${parseFloat(row[col.key]).toLocaleString("en-IN")}`}
-                              </>
-                            ) : display(row[col.key])}
-                        </td>
-                      ))}
+  <td key={col.key} className="px-3 py-1 border-b">
+    {col.type === "number" && row[col.key] && col.key !== "year"
+      ? (
+        <>
+          {col.key === "roi"
+            ? `${parseFloat(row[col.key]).toFixed(2)}%`
+            : `₹${parseFloat(row[col.key]).toLocaleString("en-IN")}`}
+        </>
+      ) : col.key === "year" && row[col.key] 
+        ? row[col.key] // Display year as plain number
+        : display(row[col.key])}
+  </td>
+))}
+
                       <td className="px-3 py-1 border-b text-center">
                         {isComplete ? (
                           <Badge variant="default" className="bg-green-100 text-green-700 border-green-200 text-xs">

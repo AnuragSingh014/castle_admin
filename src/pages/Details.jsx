@@ -30,7 +30,8 @@ import {
     Briefcase,
     Shield,
     FileText,
-    CheckCircle
+    CheckCircle,
+    Calculator
   } from 'lucide-react';
   
 // Corrected imports based on your file structure
@@ -41,6 +42,9 @@ import AdminInformationSheetView from '@/components/admin/AdminInformationSheetV
 import AdminBeneficialOwnerView from '@/components/admin/AdminBeneficialOwnerView';
 import AdminDDFormView from '@/components/admin/AdminDDFormView';
 import AdminLoanDetailsView from '@/components/admin/AdminLoanDetailsView';
+// ✅ NEW IMPORTS FOR CEO AND CFO DASHBOARD VIEWS
+import AdminCEODashboardView from '@/components/admin/AdminCEODashboardView';
+import AdminCFODashboardView from '@/components/admin/AdminCFODashboardView';
 
 // Compact Deal Status Component
 const CompactDealStatus = ({ 
@@ -135,7 +139,7 @@ const Details = ({ userId, onBack }) => {
     setActionLoading(true);
     try {
       const token = localStorage.getItem('admin_token');
-      const response = await fetch(`https://castle-backend.onrender.com/api/admin/users/${userId}/public-amount`, {
+      const response = await fetch(`http://localhost:5000/api/admin/users/${userId}/public-amount`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -173,13 +177,13 @@ const Details = ({ userId, onBack }) => {
       console.log('Starting approval process for user:', userId);
   
       // Approve specific sections that need approval
-      const sectionsToApprove = ['informationSheet', 'beneficialOwnerCertification', 'ddform', 'loanDetails','companyReferences'];
+      const sectionsToApprove = ['informationSheet', 'beneficialOwnerCertification', 'ddform', 'loanDetails','companyReferences', 'ceoDashboard', 'cfoDashboard'];
       const results = [];
       
       for (const section of sectionsToApprove) {
         console.log(`Approving section: ${section}`);
         
-        const response = await fetch(`https://castle-backend.onrender.com/api/admin/users/${userId}/approve`, {
+        const response = await fetch(`http://localhost:5000/api/admin/users/${userId}/approve`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -228,7 +232,7 @@ const Details = ({ userId, onBack }) => {
   const refreshUserData = async () => {
     try {
       const token = localStorage.getItem('admin_token');
-      const response = await fetch(`https://castle-backend.onrender.com/api/admin/users/${userId}`, {
+      const response = await fetch(`http://localhost:5000/api/admin/users/${userId}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -247,7 +251,7 @@ const Details = ({ userId, onBack }) => {
     }
   };
 
-  // Navigation sections
+  // ✅ UPDATED Navigation sections - ADDED CEO AND CFO DASHBOARD SECTIONS
   const sections = [
     {
       id: 'information',
@@ -297,6 +301,21 @@ const Details = ({ userId, onBack }) => {
       icon: DollarSign,
       description: 'Loan application details',
       component: AdminLoanDetailsView
+    },
+    // ✅ NEW SECTIONS FOR CEO AND CFO DASHBOARDS
+    {
+      id: 'ceoDashboard',
+      title: 'CEO Dashboard',
+      icon: Building2,
+      description: 'Financial performance data',
+      component: AdminCEODashboardView
+    },
+    {
+      id: 'cfoDashboard',
+      title: 'CFO Dashboard',
+      icon: BarChart3,
+      description: 'Financial statements & ratios',
+      component: AdminCFODashboardView
     }
   ];
 
@@ -315,7 +334,7 @@ const Details = ({ userId, onBack }) => {
         }
 
         // Fetch user details and dashboard data
-        const response = await fetch(`https://castle-backend.onrender.com/api/admin/users/${userId}`, {
+        const response = await fetch(`http://localhost:5000/api/admin/users/${userId}`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -364,7 +383,7 @@ const Details = ({ userId, onBack }) => {
     
     try {
       const token = localStorage.getItem('admin_token');
-      const response = await fetch(`https://castle-backend.onrender.com/api/admin/users/${userId}/website-display`, {
+      const response = await fetch(`http://localhost:5000/api/admin/users/${userId}/website-display`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -422,7 +441,7 @@ const Details = ({ userId, onBack }) => {
     }
   };
 
-  // Render the selected section component
+  // ✅ UPDATED Render the selected section component - ADDED CEO AND CFO DASHBOARD HANDLING
   const renderSectionContent = () => {
     const section = sections.find(s => s.id === selectedSection);
     if (!section || !section.component) {
@@ -471,6 +490,17 @@ const Details = ({ userId, onBack }) => {
     }
 
     if (selectedSection === 'loanDetails') {
+      return (
+        <Component 
+          data={userDashboardData?.[selectedSection]}
+          userName={userInfo?.name}
+          userEmail={userInfo?.email}
+        />
+      );
+    }
+
+    // ✅ NEW HANDLING FOR CEO AND CFO DASHBOARDS
+    if (selectedSection === 'ceoDashboard' || selectedSection === 'cfoDashboard') {
       return (
         <Component 
           data={userDashboardData?.[selectedSection]}
