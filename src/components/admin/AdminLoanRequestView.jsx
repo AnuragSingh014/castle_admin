@@ -46,14 +46,14 @@ const AdminLoanRequestView = ({ data, userName, userEmail, userId }) => {
       const userData = await userResponse.json();
       const { user, dashboard } = userData;
 
-      // Prepare PDF data structure
+      // Prepare PDF data structure with corrected variable names
       const pdfData = {
         companyInfo: {
           companyName: dashboard.information?.companyName || user.name || 'COMPANY NAME'
         },
         loanRequest: {
-          fundingType: data.fundingType || 'N/A',
-          specificPurpose: data.specificPurpose || 'N/A',
+          loanType: data.loanType || 'N/A', // ✅ CORRECTED
+          loanPurpose: data.loanPurpose || 'N/A', // ✅ CORRECTED
           loanAmountRequired: data.loanAmountRequired,
           expectedROI: data.expectedROI,
           tenure: data.tenure,
@@ -286,7 +286,7 @@ const AdminLoanRequestView = ({ data, userName, userEmail, userId }) => {
                 </label>
               </div>
               <p className="text-lg font-semibold text-purple-600">
-                {getFundingTypeDisplay(data.fundingType)}
+                {getFundingTypeDisplay(data.loanType)} 
               </p>
             </div>
 
@@ -299,7 +299,7 @@ const AdminLoanRequestView = ({ data, userName, userEmail, userId }) => {
                 </label>
               </div>
               <p className="text-lg font-semibold text-indigo-600">
-                {getSpecificPurposeDisplay(data.fundingType, data.specificPurpose)}
+                {getSpecificPurposeDisplay(data.loanType, data.loanPurpose)}
               </p>
             </div>
 
