@@ -31,7 +31,9 @@ import {
     Shield,
     FileText,
     CheckCircle,
-    Calculator
+    Calculator,
+    LineChart,
+    DollarSignIcon
   } from 'lucide-react';
   
 // Corrected imports based on your file structure
@@ -45,6 +47,7 @@ import AdminLoanDetailsView from '@/components/admin/AdminLoanDetailsView';
 // ✅ NEW IMPORTS FOR CEO AND CFO DASHBOARD VIEWS
 import AdminCEODashboardView from '@/components/admin/AdminCEODashboardView';
 import AdminCFODashboardView from '@/components/admin/AdminCFODashboardView';
+import AdminLoanRequestView from '@/components/admin/AdminLoanRequestView';
 
 // Compact Deal Status Component
 const CompactDealStatus = ({ 
@@ -176,8 +179,8 @@ const Details = ({ userId, onBack }) => {
   
       console.log('Starting approval process for user:', userId);
   
-      // Approve specific sections that need approval
-      const sectionsToApprove = ['informationSheet', 'beneficialOwnerCertification', 'ddform', 'loanDetails','companyReferences', 'ceoDashboard', 'cfoDashboard'];
+      // Approve specific sections that need approval (excluding CEO and CFO dashboards)
+      const sectionsToApprove = ['informationSheet', 'beneficialOwnerCertification', 'ddform', 'loanDetails','companyReferences', 'loanRequest'];
       const results = [];
       
       for (const section of sectionsToApprove) {
@@ -197,7 +200,6 @@ const Details = ({ userId, onBack }) => {
   
         console.log(`Response for ${section}:`, response.status, response.statusText);
         
-        // Check if response redirected
         if (response.redirected) {
           console.error('Unexpected redirect detected:', response.url);
           throw new Error('Server redirected request - check authentication');
@@ -223,6 +225,72 @@ const Details = ({ userId, onBack }) => {
     } catch (err) {
       console.error('Error approving sections:', err);
       alert(`❌ Failed to approve sections: ${err.message}`);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // ✅ NEW: Toggle Analytics Access (CEO and CFO Dashboards)
+  const handleToggleAnalyticsAccess = async (userId) => {
+    setActionLoading(true);
+    
+    try {
+      const token = localStorage.getItem('admin_token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+  
+      // Check current status - if either is approved, we'll disable both
+      const ceoCurrentlyApproved = userDashboardData?.approvals?.ceoDashboard === 'approved';
+      const cfoCurrentlyApproved = userDashboardData?.approvals?.cfoDashboard === 'approved';
+      const currentlyEnabled = ceoCurrentlyApproved || cfoCurrentlyApproved;
+      
+      const newState = currentlyEnabled ? 'locked' : 'approved';
+      
+      console.log('Toggling analytics access for user:', userId);
+      console.log('Current CEO status:', ceoCurrentlyApproved);
+      console.log('Current CFO status:', cfoCurrentlyApproved);
+      console.log('New state will be:', newState);
+      
+      // Call both endpoints
+      const ceoResponse = await fetch(`https://castle-backend.onrender.com/api/admin/users/${userId}/approve-ceo-dashboard`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          state: newState
+        })
+      });
+
+      if (!ceoResponse.ok) {
+        throw new Error(`Failed to update CEO dashboard: ${ceoResponse.status}`);
+      }
+
+      const cfoResponse = await fetch(`https://castle-backend.onrender.com/api/admin/users/${userId}/approve-cfo-dashboard`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          state: newState
+        })
+      });
+
+      if (!cfoResponse.ok) {
+        throw new Error(`Failed to update CFO dashboard: ${cfoResponse.status}`);
+      }
+      
+      // Reload the user data to show updated status
+      await refreshUserData();
+      
+      alert(`✅ Analytics access ${newState === 'approved' ? 'enabled' : 'disabled'} successfully!`);
+      
+    } catch (err) {
+      console.error('Error toggling analytics access:', err);
+      alert('Failed to toggle analytics access. Please try again.');
     } finally {
       setActionLoading(false);
     }
@@ -298,21 +366,27 @@ const Details = ({ userId, onBack }) => {
     {
       id: 'loanDetails',
       title: 'Loan Details',
-      icon: DollarSign,
+      icon: DollarSignIcon,
       description: 'Loan application details',
       component: AdminLoanDetailsView
     },
-    // ✅ NEW SECTIONS FOR CEO AND CFO DASHBOARDS
+    {
+      id: 'loanRequest',
+      title: 'Loan Request',
+      icon: DollarSign,
+      description: 'Funding requirements',
+      component: AdminLoanRequestView
+    },
     {
       id: 'ceoDashboard',
-      title: 'CEO Dashboard',
+      title: 'CEO Analytics',
       icon: Building2,
       description: 'Financial performance data',
       component: AdminCEODashboardView
     },
     {
       id: 'cfoDashboard',
-      title: 'CFO Dashboard',
+      title: 'CFO Analytics',
       icon: BarChart3,
       description: 'Financial statements & ratios',
       component: AdminCFODashboardView
@@ -623,6 +697,30 @@ const Details = ({ userId, onBack }) => {
                       {actionLoading ? 'Processing...' : 'Approve Form Access'}
                     </Button>
 
+                    {/* ✅ NEW: Toggle Analytics Access Button */}
+                    <Button
+                      onClick={() => handleToggleAnalyticsAccess(userId)}
+                      disabled={actionLoading}
+                      variant="outline"
+                      className={`px-6 py-2 rounded-lg border-2 transition-all duration-200 ${
+                        (userDashboardData?.approvals?.ceoDashboard === 'approved' || userDashboardData?.approvals?.cfoDashboard === 'approved')
+                          ? 'border-orange-300 text-orange-700 hover:bg-orange-50 hover:border-orange-400' 
+                          : 'border-purple-300 text-purple-700 hover:bg-purple-50 hover:border-purple-400'
+                      }`}
+                    >
+                      {(userDashboardData?.approvals?.ceoDashboard === 'approved' || userDashboardData?.approvals?.cfoDashboard === 'approved') ? (
+                        <>
+                          <LineChart className="w-4 h-4 mr-2" />
+                          Disable Analytics
+                        </>
+                      ) : (
+                        <>
+                          <LineChart className="w-4 h-4 mr-2" />
+                          Enable Analytics
+                        </>
+                      )}
+                    </Button>
+
                     {/* Website Display Toggle Button */}
                     <Button
                       onClick={() => handleWebsiteDisplayToggle(userId)}
@@ -697,9 +795,6 @@ const Details = ({ userId, onBack }) => {
                           onClick={() => setSelectedSection(section.id)}
                         >
                           <div className="flex items-start space-x-3 w-full min-w-0">
-                            {/* Icon */}
-                            
-                            
                             {/* Content */}
                             <div className="flex-1 min-w-0">
                               <div className="flex items-start justify-between mb-1">

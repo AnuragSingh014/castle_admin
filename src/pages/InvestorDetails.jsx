@@ -37,12 +37,9 @@ import {
     CheckCircle,
     Users,
     Award,
-    Activity
+    Activity,
+    LineChart
   } from 'lucide-react';
-
-// Import other investor dashboard view components (to be created later)
-// import InvestorCEODashboardView from '../components/admin/InvestorCEODashboardView';
-// import InvestorCFODashboardView from '../components/admin/InvestorCFODashboardView';
 
 // Compact Investor Status Component
 const CompactInvestorStatus = ({ 
@@ -115,28 +112,108 @@ const InvestorDetails = ({ investorId, onBack }) => {
   const [error, setError] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
 
- 
-
+  // ✅ FIXED: Toggle Analytics Access for Investor (CEO and CFO Dashboards)
+  const handleToggleInvestorAnalyticsAccess = async (investorId) => {
+    setActionLoading(true);
+    
+    try {
+      const token = localStorage.getItem('admin_token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
   
+      // Check current status - if either is approved, we'll disable both
+      const ceoCurrentlyApproved = investorDashboardData?.approvals?.ceoDashboard === 'approved';
+      const cfoCurrentlyApproved = investorDashboardData?.approvals?.cfoDashboard === 'approved';
+      const currentlyEnabled = ceoCurrentlyApproved || cfoCurrentlyApproved;
+      
+      const newState = currentlyEnabled ? 'locked' : 'approved';
+      
+      console.log('Toggling investor analytics access for:', investorId);
+      console.log('Current CEO status:', ceoCurrentlyApproved);
+      console.log('Current CFO status:', cfoCurrentlyApproved);
+      console.log('New state will be:', newState);
+      
+      // Call both investor approval endpoints
+      const [ceoResponse, cfoResponse] = await Promise.all([
+        fetch(`https://castle-backend.onrender.com/api/admin/investors/${investorId}/approve-ceo-dashboard`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            state: newState
+          })
+        }),
+        fetch(`https://castle-backend.onrender.com/api/admin/investors/${investorId}/approve-cfo-dashboard`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            state: newState
+          })
+        })
+      ]);
 
-  // Function to refresh investor data
+      if (!ceoResponse.ok) {
+        throw new Error(`Failed to update investor CEO dashboard: ${ceoResponse.status}`);
+      }
+
+      if (!cfoResponse.ok) {
+        throw new Error(`Failed to update investor CFO dashboard: ${cfoResponse.status}`);
+      }
+      
+      // ✅ FIXED: Reload the investor data to show updated status
+      await refreshInvestorData();
+      
+      alert(`✅ Investor analytics access ${newState === 'approved' ? 'enabled' : 'disabled'} successfully!`);
+      
+    } catch (err) {
+      console.error('Error toggling investor analytics access:', err);
+      alert('Failed to toggle investor analytics access. Please try again.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // ✅ FIXED: Function to refresh investor data
   const refreshInvestorData = async () => {
     try {
       const token = localStorage.getItem('admin_token');
-      const response = await fetch(`https://castle-backend.onrender.com/api/admin/investors/${investorId}`, {
-        method: 'GET',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      });
       
-      if (response.ok) {
-        const updatedData = await response.json();
-        setInvestorInfo(updatedData.investor);
-        setInvestorDashboardData(updatedData.dashboard);
-        console.log('Investor data refreshed:', updatedData);
+      // Fetch BOTH endpoints again to get fresh data
+      const [investorResponse, dashboardResponse] = await Promise.all([
+        fetch(`https://castle-backend.onrender.com/api/admin/investors/${investorId}`, {
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json' 
+          }
+        }),
+        fetch(`https://castle-backend.onrender.com/api/investor-dashboard/${investorId}`)
+      ]);
+      
+      if (investorResponse.ok) {
+        const investorData = await investorResponse.json();
+        setInvestorInfo(investorData.investor);
+        
+        // ✅ CRITICAL FIX: Update dashboard data with fresh approvals
+        if (investorData.dashboard) {
+          setInvestorDashboardData(investorData.dashboard);
+        }
       }
+      
+      // Also fetch from dashboard endpoint if available
+      if (dashboardResponse.ok) {
+        const dashboardData = await dashboardResponse.json();
+        if (dashboardData.success && dashboardData.data) {
+          setInvestorDashboardData(dashboardData.data);
+        }
+      }
+      
+      console.log('Investor data refreshed successfully');
     } catch (error) {
       console.error('Error refreshing investor data:', error);
     }
@@ -149,35 +226,35 @@ const InvestorDetails = ({ investorId, onBack }) => {
       title: 'Investor Profile',
       icon: User,
       description: 'Personal and professional info',
-      component: InvestorProfileView // Connect the component here
+      component: InvestorProfileView
     },
     {
       id: 'ceoDashboard',
-      title: 'CEO Dashboard',
+      title: 'CEO Analytics',
       icon: Building2,
       description: 'Financial performance data',
-      component: InvestorCEODashboardView// InvestorCEODashboardView (to be created)
+      component: InvestorCEODashboardView
     },
     {
       id: 'cfoDashboard',
-      title: 'CFO Dashboard',
+      title: 'CFO Analytics',
       icon: BarChart3,
       description: 'Balance sheet and ratios',
-      component: InvestorCFODashboardView // InvestorCFODashboardView (to be created)
+      component: InvestorCFODashboardView
     },
     {
       id: 'ceoCharts',
-      title: 'CEO Analytics',
+      title: 'CEO Charts',
       icon: Activity,
       description: 'Business performance charts',
-      component: InvestorCEODashboardCharts // ← Add CEO charts
+      component: InvestorCEODashboardCharts
     },
     {
       id: 'cfoCharts',
-      title: 'CFO Analytics',
+      title: 'CFO Charts',
       icon: TrendingUp,
       description: 'Financial analytics and trends',
-      component: InvestorCFODashboardCharts // ← Keep CFO charts
+      component: InvestorCFODashboardCharts
     },
   ];
 
@@ -196,18 +273,16 @@ const InvestorDetails = ({ investorId, onBack }) => {
         }
   
         // Fetch BOTH endpoints in parallel
-        // ✅ CORRECT:
         const [investorResponse, dashboardResponse] = await Promise.all([
             fetch(`https://castle-backend.onrender.com/api/admin/investors/${investorId}`, {
               headers: { 
-                'Authorization': `Bearer ${token}`,  // ← Make sure this is included
+                'Authorization': `Bearer ${token}`,
                 'Content-Type': 'application/json' 
               }
             }),
             fetch(`https://castle-backend.onrender.com/api/investor-dashboard/${investorId}`)
           ]);
           
-  
         // Handle investor basic info
         if (!investorResponse.ok) {
           throw new Error(`Failed to fetch investor data: ${investorResponse.status}`);
@@ -233,7 +308,6 @@ const InvestorDetails = ({ investorId, onBack }) => {
   
     fetchInvestorData();
   }, [investorId]);
-  
 
   // Get completion status for a section
   const getSectionStatus = (sectionId) => {
@@ -440,8 +514,42 @@ const InvestorDetails = ({ investorId, onBack }) => {
                   </div>
                 </div>
 
-                {/* Action Buttons - Compact Layout */}
-                
+                {/* ✅ FIXED: Action Button for Analytics Toggle */}
+                <div className="flex items-center justify-start pt-4 border-t border-gray-200">
+                  <Button
+                    onClick={() => handleToggleInvestorAnalyticsAccess(investorId)}
+                    disabled={actionLoading}
+                    variant="outline"
+                    className={`px-6 py-2 rounded-lg border-2 transition-all duration-200 ${
+                      (investorDashboardData?.approvals?.ceoDashboard === 'approved' || investorDashboardData?.approvals?.cfoDashboard === 'approved')
+                        ? 'border-orange-300 text-orange-700 hover:bg-orange-50 hover:border-orange-400' 
+                        : 'border-purple-300 text-purple-700 hover:bg-purple-50 hover:border-purple-400'
+                    }`}
+                  >
+                    {actionLoading ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin mr-2"></div>
+                        Processing...
+                      </>
+                    ) : (investorDashboardData?.approvals?.ceoDashboard === 'approved' || investorDashboardData?.approvals?.cfoDashboard === 'approved') ? (
+                      <>
+                        <LineChart className="w-4 h-4 mr-2" />
+                        Disable Analytics
+                      </>
+                    ) : (
+                      <>
+                        <LineChart className="w-4 h-4 mr-2" />
+                        Enable Analytics
+                      </>
+                    )}
+                  </Button>
+
+                  {/* Debug Info - Remove in production */}
+                  <div className="ml-4 text-xs text-gray-500">
+                    CEO: {investorDashboardData?.approvals?.ceoDashboard || 'locked'} | 
+                    CFO: {investorDashboardData?.approvals?.cfoDashboard || 'locked'}
+                  </div>
+                </div>
               </CardContent>
             </Card>
           )}
@@ -515,7 +623,6 @@ const InvestorDetails = ({ investorId, onBack }) => {
                               }`}>
                                 {section.description}
                               </p>
-                              
                               
                             </div>
                           </div>
