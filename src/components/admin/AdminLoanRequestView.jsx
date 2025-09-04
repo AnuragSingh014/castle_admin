@@ -20,12 +20,14 @@ const AdminLoanRequestView = ({ data, userName, userEmail, userId }) => {
   const [isDownloading, setIsDownloading] = useState(false);
 
   // Handle PDF download
-  const handleDownloadPdf = async () => {
+  // Updated handleDownloadPdf function in AdminLoanRequestView
+// Updated handleDownloadPdf function in AdminLoanRequestView
+const handleDownloadPdf = async () => {
     if (!userId) {
       alert('❌ User ID not found. Cannot generate PDF.');
       return;
     }
-
+  
     setIsDownloading(true);
     
     try {
@@ -33,48 +35,55 @@ const AdminLoanRequestView = ({ data, userName, userEmail, userId }) => {
       if (!token) {
         throw new Error('No authentication token found');
       }
-
-      // Fetch all required data from backend
+  
+      // ✅ FIXED: Use the SAME API endpoint as admin components
       const userResponse = await fetch(`https://castle-backend.onrender.com/api/admin/users/${userId}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
-
+  
       if (!userResponse.ok) {
         throw new Error('Failed to fetch user data');
       }
-
+  
       const userData = await userResponse.json();
+      
+      // ✅ The response structure from your admin API
       const { user, dashboard } = userData;
-
-      // Prepare PDF data structure with corrected variable names
+  
+      // ✅ FIXED: Prepare PDF data using the SAME structure as admin components
       const pdfData = {
         companyInfo: {
-          companyName: dashboard.information?.companyName || user.name || 'COMPANY NAME'
+          companyName: dashboard?.information?.companyName || user?.name || 'COMPANY NAME'
         },
         loanRequest: {
-          loanType: data.loanType || 'N/A', // ✅ CORRECTED
-          loanPurpose: data.loanPurpose || 'N/A', // ✅ CORRECTED
+          loanType: data.loanType,
+          loanPurpose: data.loanPurpose,
           loanAmountRequired: data.loanAmountRequired,
           expectedROI: data.expectedROI,
           tenure: data.tenure,
           tenureUnit: data.tenureUnit
         },
         businessOverview: {
-          businessOverview: dashboard.overview?.businessOverview || 'No business overview provided.',
-          industryOverview: dashboard.overview?.industryOverview || 'No industry overview provided.',
-          fundUtilization: dashboard.overview?.fundUtilization || 'No fund utilization data provided.',
-          revenueStreams: dashboard.overview?.revenueStreams || null,
-          financialHighlights: dashboard.overview?.financialHighlights || null,
-          peerAnalysis: dashboard.overview?.peerData || null,
+          // ✅ Using the same field access as OverviewView.jsx
+          businessOverview: dashboard?.overview?.businessOverview || null,
+          industryOverview: dashboard?.overview?.industryOverview || null,
+          fundUtilization: dashboard?.overview?.fundUtilization || null,
+          aboutPromoters: dashboard?.overview?.aboutPromoters || null,
+          riskFactors: dashboard?.overview?.riskFactors || null,
+          revenueStreams: dashboard?.overview?.revenueStreams || null,
+          financialHighlights: dashboard?.overview?.financialHighlights || null,
+          peerAnalysis: dashboard?.overview?.peerAnalysis || null,
           productOffering: {
-            images: dashboard.overview?.productImages || []
+            images: dashboard?.overview?.images || []
           }
         }
       };
-
+  
+      console.log('📊 PDF Data Structure:', pdfData); // Debug log
+  
       // Generate PDF
       const pdfBytes = await createIpoOnePagerPdf(pdfData);
-
+  
       // Download PDF
       const blob = new Blob([pdfBytes], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
@@ -89,9 +98,9 @@ const AdminLoanRequestView = ({ data, userName, userEmail, userId }) => {
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-
+  
       alert('✅ IPO One Pager downloaded successfully!');
-
+  
     } catch (error) {
       console.error('PDF generation error:', error);
       alert(`❌ Failed to generate PDF: ${error.message}`);
@@ -99,6 +108,8 @@ const AdminLoanRequestView = ({ data, userName, userEmail, userId }) => {
       setIsDownloading(false);
     }
   };
+  
+  
 
   // Handle case where no data is provided
   if (!data) {

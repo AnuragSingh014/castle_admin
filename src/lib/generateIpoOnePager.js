@@ -1,6 +1,6 @@
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 
-// Helper function to sanitize text for PDF (replace rupee symbols)
+// Helper function to sanitize text for PDF
 const sanitizeTextForPdf = (text) => {
   if (!text) return text;
   return text.toString().replace(/₹/g, 'Rs.');
@@ -14,13 +14,13 @@ export async function createIpoOnePagerPdf(data) {
   const helvetica = await pdfDoc.embedFont(StandardFonts.Helvetica);
   const helveticaBold = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
   
-  let currentPage = pdfDoc.addPage([595, 842]); // A4 size
+  let currentPage = pdfDoc.addPage([595, 842]);
   let yPosition = 800;
   const margin = 50;
   const pageWidth = 595;
   const contentWidth = pageWidth - (margin * 2);
 
-  // Helper function to add new page when needed
+  // Helper functions
   const checkNewPage = (requiredSpace = 50) => {
     if (yPosition < requiredSpace) {
       currentPage = pdfDoc.addPage([595, 842]);
@@ -28,7 +28,6 @@ export async function createIpoOnePagerPdf(data) {
     }
   };
 
-  // Helper function to wrap text
   const wrapText = (text, font, fontSize, maxWidth) => {
     const words = text.split(' ');
     const lines = [];
@@ -49,7 +48,6 @@ export async function createIpoOnePagerPdf(data) {
     return lines;
   };
 
-  // Helper function to add text with wrapping
   const addText = (text, options = {}) => {
     const {
       font = timesRoman,
@@ -62,7 +60,6 @@ export async function createIpoOnePagerPdf(data) {
 
     if (!text) return;
 
-    // ✅ SANITIZE TEXT TO REMOVE RUPEE SYMBOLS
     const sanitizedText = sanitizeTextForPdf(text);
     const lines = wrapText(sanitizedText, font, size, maxWidth - indent);
     
@@ -77,47 +74,66 @@ export async function createIpoOnePagerPdf(data) {
       });
       yPosition -= lineHeight;
     }
-    yPosition -= 5; // Extra spacing after text block
+    yPosition -= 5;
   };
 
-  // Add header
+  const hasValidContent = (content) => {
+    if (!content) return false;
+    if (typeof content === 'string') {
+      const cleaned = content.trim().toLowerCase();
+      return cleaned.length > 0 && 
+             cleaned !== 'no business overview provided.' &&
+             cleaned !== 'no industry overview provided.' &&
+             cleaned !== 'no fund utilization data provided.' &&
+             cleaned !== 'not provided' &&
+             cleaned !== 'n/a';
+    }
+    return true;
+  };
+
+  // HEADER SECTION
   const companyName = data.companyInfo?.companyName || 'COMPANY NAME';
-  const fundingType = getFundingTypeDisplay(data.loanRequest?.fundingType);
-  const specificPurpose = getSpecificPurposeDisplay(data.loanRequest?.fundingType, data.loanRequest?.specificPurpose);
+  const fundingType = getFundingTypeDisplay(data.loanRequest?.loanType);
+  const specificPurpose = getSpecificPurposeDisplay(data.loanRequest?.loanType, data.loanRequest?.loanPurpose);
   
-  // Main title
-  currentPage.drawText('IPO ONE PAGER : DRAFT', {
+  // Company name as main title
+  currentPage.drawText(companyName, {
     x: margin,
     y: yPosition,
-    size: 18,
+    size: 24,
     font: helveticaBold,
-    color: rgb(0, 0, 0.8)
+    color: rgb(0, 0.4, 0)
   });
   
-  // Funding type and purpose
-  yPosition -= 25;
-  currentPage.drawText(`${fundingType} - ${specificPurpose}`, {
+  yPosition -= 35;
+  
+  // Funding type
+  currentPage.drawText(fundingType, {
     x: margin,
     y: yPosition,
-    size: 14,
+    size: 16,
     font: timesRomanBold,
     color: rgb(0.2, 0.2, 0.2)
   });
   
-  // Company name
   yPosition -= 25;
-  currentPage.drawText(companyName, {
-    x: margin,
-    y: yPosition,
-    size: 16,
-    font: helveticaBold,
-    color: rgb(0, 0.4, 0)
-  });
+  
+  // Specific purpose
+  if (specificPurpose && specificPurpose !== 'N/A' && specificPurpose !== 'na') {
+    currentPage.drawText(specificPurpose, {
+      x: margin,
+      y: yPosition,
+      size: 14,
+      font: timesRoman,
+      color: rgb(0.4, 0.4, 0.4)
+    });
+    yPosition -= 25;
+  }
 
-  yPosition -= 40;
+  yPosition -= 30;
 
-  // Add Business Overview
-  if (data.businessOverview?.businessOverview) {
+  // BUSINESS OVERVIEW
+  if (hasValidContent(data.businessOverview?.businessOverview)) {
     checkNewPage(100);
     addText('BUSINESS OVERVIEW', { 
       font: helveticaBold, 
@@ -129,30 +145,152 @@ export async function createIpoOnePagerPdf(data) {
     yPosition -= 20;
   }
 
-  // Add Revenue Streams
-  if (data.businessOverview?.revenueStreams) {
-    checkNewPage(150);
-    addText('REVENUE STREAMS', { 
+  // ✅ PRODUCT OFFERINGS SECTION (Add images first, before other sections)
+  if (data.businessOverview?.productOffering?.images?.length > 0) {
+    checkNewPage(300);
+    addText('PRODUCT OFFERINGS', { 
       font: helveticaBold, 
       size: 14, 
       color: rgb(0, 0.2, 0.4) 
     });
-    yPosition -= 15;
+    yPosition -= 20;
 
-    if (typeof data.businessOverview.revenueStreams === 'object') {
-      Object.entries(data.businessOverview.revenueStreams).forEach(([year, value]) => {
-        if (value && value.toString().trim()) {
-          addText(`${year.toUpperCase()}: ${value}`);
+    // Display images in a grid layout
+    let imagesPerRow = 2;
+    let imageWidth = (contentWidth - 20) / imagesPerRow; // 20px spacing between images
+    let imageHeight = 100;
+    let currentImageX = margin;
+    let imagesInCurrentRow = 0;
+    let maxHeightInRow = 0;
+
+    for (let i = 0; i < data.businessOverview.productOffering.images.length; i++) {
+      const imageData = data.businessOverview.productOffering.images[i];
+      
+      try {
+        if (!imageData.data) continue;
+        
+        checkNewPage(imageHeight + 50);
+        
+        // Remove data URL prefix and decode base64
+        const base64Data = imageData.data.replace(/^data:image\/[a-z]+;base64,/, '');
+        const imageBytes = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+        
+        let image;
+        const mimeType = imageData.mimetype || 'image/jpeg';
+        
+        if (mimeType.includes('png')) {
+          image = await pdfDoc.embedPng(imageBytes);
+        } else {
+          image = await pdfDoc.embedJpg(imageBytes);
         }
-      });
-    } else if (typeof data.businessOverview.revenueStreams === 'string') {
-      addText(data.businessOverview.revenueStreams);
+        
+        // Calculate scaled dimensions
+        const maxImageWidth = imageWidth - 10;
+        const maxImageHeight = imageHeight;
+        const scaleFactor = Math.min(
+          maxImageWidth / image.width,
+          maxImageHeight / image.height
+        );
+        const scaledWidth = image.width * scaleFactor;
+        const scaledHeight = image.height * scaleFactor;
+        
+        // Position image
+        currentPage.drawImage(image, {
+          x: currentImageX,
+          y: yPosition - scaledHeight,
+          width: scaledWidth,
+          height: scaledHeight
+        });
+        
+        // Add image label
+        const labelY = yPosition - scaledHeight - 15;
+        currentPage.drawText(imageData.originalName || imageData.filename || `Product ${i + 1}`, {
+          x: currentImageX,
+          y: labelY,
+          size: 8,
+          font: helvetica,
+          color: rgb(0.5, 0.5, 0.5)
+        });
+        
+        maxHeightInRow = Math.max(maxHeightInRow, scaledHeight + 25);
+        imagesInCurrentRow++;
+        
+        // Move to next position
+        if (imagesInCurrentRow < imagesPerRow && i < data.businessOverview.productOffering.images.length - 1) {
+          currentImageX += imageWidth;
+        } else {
+          // Move to next row
+          yPosition -= maxHeightInRow;
+          currentImageX = margin;
+          imagesInCurrentRow = 0;
+          maxHeightInRow = 0;
+        }
+        
+      } catch (error) {
+        console.warn('Failed to embed image:', error);
+        addText(`[Image: ${imageData.originalName || 'Product Image'}]`, {
+          color: rgb(0.7, 0.7, 0.7),
+          font: helvetica,
+          size: 10
+        });
+      }
     }
+    
     yPosition -= 20;
   }
 
-  // Add Industry Overview
-  if (data.businessOverview?.industryOverview) {
+  // REVENUE STREAMS
+  if (data.businessOverview?.revenueStreams) {
+    let revenueStreamsData;
+    
+    if (typeof data.businessOverview.revenueStreams === 'object') {
+      revenueStreamsData = data.businessOverview.revenueStreams;
+    } else if (typeof data.businessOverview.revenueStreams === 'string') {
+      try {
+        const parsed = JSON.parse(data.businessOverview.revenueStreams);
+        if (typeof parsed === 'object') {
+          revenueStreamsData = parsed;
+        }
+      } catch (e) {
+        revenueStreamsData = {
+          fy2022: "",
+          fy2023: "",
+          fy2024: data.businessOverview.revenueStreams
+        };
+      }
+    }
+
+    const hasValidRevenueData = revenueStreamsData && (
+      hasValidContent(revenueStreamsData.fy2024) ||
+      hasValidContent(revenueStreamsData.fy2023) ||
+      hasValidContent(revenueStreamsData.fy2022)
+    );
+
+    if (hasValidRevenueData) {
+      checkNewPage(150);
+      addText('REVENUE STREAMS', { 
+        font: helveticaBold, 
+        size: 14, 
+        color: rgb(0, 0.2, 0.4) 
+      });
+      yPosition -= 15;
+
+      if (hasValidContent(revenueStreamsData.fy2024)) {
+        addText(`• FY 2024: ${revenueStreamsData.fy2024}`);
+      }
+      if (hasValidContent(revenueStreamsData.fy2023)) {
+        addText(`• FY 2023: ${revenueStreamsData.fy2023}`);
+      }
+      if (hasValidContent(revenueStreamsData.fy2022)) {
+        addText(`• FY 2022: ${revenueStreamsData.fy2022}`);
+      }
+      
+      yPosition -= 20;
+    }
+  }
+
+  // INDUSTRY OVERVIEW
+  if (hasValidContent(data.businessOverview?.industryOverview)) {
     checkNewPage(100);
     addText('INDUSTRY OVERVIEW', { 
       font: helveticaBold, 
@@ -164,8 +302,8 @@ export async function createIpoOnePagerPdf(data) {
     yPosition -= 20;
   }
 
-  // Add Fund Utilization
-  if (data.businessOverview?.fundUtilization) {
+  // FUND UTILIZATION
+  if (hasValidContent(data.businessOverview?.fundUtilization)) {
     checkNewPage(100);
     addText('FUND UTILIZATION', { 
       font: helveticaBold, 
@@ -177,43 +315,44 @@ export async function createIpoOnePagerPdf(data) {
     yPosition -= 20;
   }
 
-  // Add Financial Highlights
+  // ✅ FINANCIAL HIGHLIGHTS TABLE
   if (data.businessOverview?.financialHighlights) {
-    checkNewPage(200);
+    checkNewPage(300);
     addText('FINANCIAL HIGHLIGHTS', { 
       font: helveticaBold, 
       size: 14, 
       color: rgb(0, 0.2, 0.4) 
     });
-    yPosition -= 15;
+    yPosition -= 20;
 
     const periods = [
-      { key: 'fy2022', label: 'FY 2022' },
-      { key: 'fy2023', label: 'FY 2023' },
-      { key: 'fy2024', label: 'FY 2024' }
+      { key: 'fy22', label: 'FY 2022' },
+      { key: 'fy23', label: 'FY 2023' },
+      { key: 'fy24', label: 'FY 2024' },
+      { key: 'sept24', label: 'Sept 2024' }
     ];
 
-    // ✅ FIX: Replace rupee symbols in metric units
     const metrics = [
       { key: 'revenue', label: 'Revenue', unit: '(Rs. Cr)' },
       { key: 'ebitda', label: 'EBITDA', unit: '(Rs. Cr)' },
       { key: 'pat', label: 'PAT', unit: '(Rs. Cr)' },
-      { key: 'eps', label: 'EPS', unit: '(Rs.)' }
+      { key: 'ebitdaMargin', label: 'EBITDA Margin', unit: '(%)' },
+      { key: 'patMargin', label: 'PAT Margin', unit: '(%)' }
     ];
 
     // Table header
     let tableY = yPosition;
-    currentPage.drawText('Particulars', { x: margin, y: tableY, size: 10, font: helveticaBold });
+    currentPage.drawText('Particulars', { x: margin, y: tableY, size: 11, font: helveticaBold });
     periods.forEach((period, index) => {
       currentPage.drawText(period.label, { 
-        x: margin + 150 + (index * 80), 
+        x: margin + 130 + (index * 80), 
         y: tableY, 
-        size: 10, 
+        size: 11, 
         font: helveticaBold 
       });
     });
     
-    tableY -= 20;
+    tableY -= 25;
     
     // Table rows
     metrics.forEach(metric => {
@@ -226,24 +365,57 @@ export async function createIpoOnePagerPdf(data) {
       });
       
       periods.forEach((period, index) => {
-        let value = data.businessOverview.financialHighlights[metric.key]?.[period.key] || '-';
-        // ✅ SANITIZE VALUE TO REMOVE RUPEE SYMBOLS
+        let value = data.businessOverview.financialHighlights[metric.key]?.[period.key];
+        if (value !== undefined && value !== null) {
+          if (metric.key.includes('Margin')) {
+            value = `${value}%`;
+          }
+        } else {
+          value = '-';
+        }
+        
         value = sanitizeTextForPdf(value.toString());
         currentPage.drawText(value, { 
-          x: margin + 150 + (index * 80), 
+          x: margin + 130 + (index * 80), 
           y: tableY, 
           size: 10, 
           font: timesRoman 
         });
       });
       
-      tableY -= 15;
+      tableY -= 18;
     });
 
     yPosition = tableY - 20;
   }
 
-  // Add Peer Analysis
+  // ✅ ABOUT THE PROMOTERS
+  if (hasValidContent(data.businessOverview?.aboutPromoters)) {
+    checkNewPage(100);
+    addText('ABOUT THE PROMOTERS', { 
+      font: helveticaBold, 
+      size: 14, 
+      color: rgb(0, 0.2, 0.4) 
+    });
+    yPosition -= 10;
+    addText(data.businessOverview.aboutPromoters);
+    yPosition -= 20;
+  }
+
+  // ✅ RISK FACTORS
+  if (hasValidContent(data.businessOverview?.riskFactors)) {
+    checkNewPage(100);
+    addText('RISK FACTORS', { 
+      font: helveticaBold, 
+      size: 14, 
+      color: rgb(0, 0.2, 0.4) 
+    });
+    yPosition -= 10;
+    addText(data.businessOverview.riskFactors);
+    yPosition -= 20;
+  }
+
+  // ✅ PEER ANALYSIS TABLE - UPDATED TO SHOW ONLY COMPANY, REVENUE, BASIC EPS
   if (data.businessOverview?.peerAnalysis?.companyNames) {
     const peerData = data.businessOverview.peerAnalysis;
     
@@ -255,109 +427,73 @@ export async function createIpoOnePagerPdf(data) {
     });
     yPosition -= 15;
 
-    // Filter valid peers
+    // Filter valid peers and only extract company, revenue, basicEps
     const validPeers = peerData.companyNames
       .map((name, index) => ({
         name: name || 'N/A',
         revenue: peerData.revenue?.[index] || 'N/A',
-        ebitda: peerData.ebitda?.[index] || 'N/A',
-        pat: peerData.pat?.[index] || 'N/A',
-        roe: peerData.roe?.[index] || 'N/A'
+        basicEps: peerData.basicEps?.[index] || 'N/A'  // ✅ Only using basicEps now
       }))
-      .filter(peer => peer.name !== 'N/A' || 
-        peer.revenue !== 'N/A' || 
-        peer.ebitda !== 'N/A' || 
-        peer.pat !== 'N/A');
+      .filter(peer => peer.name && peer.name !== 'N/A' && peer.name.trim() !== '');
 
     if (validPeers.length > 0) {
-      // Table header
       let tableY = yPosition;
-      currentPage.drawText('Company', { x: margin, y: tableY, size: 9, font: helveticaBold });
-      currentPage.drawText('Revenue', { x: margin + 120, y: tableY, size: 9, font: helveticaBold });
-      currentPage.drawText('EBITDA', { x: margin + 180, y: tableY, size: 9, font: helveticaBold });
-      currentPage.drawText('PAT', { x: margin + 240, y: tableY, size: 9, font: helveticaBold });
-      currentPage.drawText('ROE', { x: margin + 300, y: tableY, size: 9, font: helveticaBold });
+      // ✅ Updated headers to only show Company, Revenue, Basic EPS
+      const headers = ['Company', 'Revenue (Rs. Cr)', 'Basic EPS (Rs.)'];
+      const colWidths = [120, 120, 120]; // ✅ Adjusted column widths for 3 columns
+      let xPos = margin;
       
-      tableY -= 15;
+      headers.forEach((header, index) => {
+        currentPage.drawText(header, { x: xPos, y: tableY, size: 10, font: helveticaBold });
+        xPos += colWidths[index];
+      });
+      
+      tableY -= 20;
       
       validPeers.forEach(peer => {
         checkNewPage();
-        // ✅ SANITIZE ALL PEER DATA
-        currentPage.drawText(sanitizeTextForPdf(peer.name.toString().substring(0, 15)), { x: margin, y: tableY, size: 8, font: timesRoman });
-        currentPage.drawText(sanitizeTextForPdf(peer.revenue.toString()), { x: margin + 120, y: tableY, size: 8, font: timesRoman });
-        currentPage.drawText(sanitizeTextForPdf(peer.ebitda.toString()), { x: margin + 180, y: tableY, size: 8, font: timesRoman });
-        currentPage.drawText(sanitizeTextForPdf(peer.pat.toString()), { x: margin + 240, y: tableY, size: 8, font: timesRoman });
-        currentPage.drawText(sanitizeTextForPdf(peer.roe.toString()), { x: margin + 300, y: tableY, size: 8, font: timesRoman });
-        tableY -= 12;
+        xPos = margin;
+        
+        // ✅ Updated values to only include the 3 columns
+        const values = [
+          peer.name.substring(0, 15),
+          peer.revenue.toString(),
+          peer.basicEps.toString()
+        ];
+        
+        values.forEach((value, index) => {
+          currentPage.drawText(sanitizeTextForPdf(value), { 
+            x: xPos, 
+            y: tableY, 
+            size: 9, 
+            font: timesRoman 
+          });
+          xPos += colWidths[index];
+        });
+        tableY -= 15;
       });
 
       yPosition = tableY - 20;
     }
   }
 
-  // Add Product Offering Images
-  if (data.businessOverview?.productOffering?.images?.length > 0) {
-    checkNewPage(300);
-    addText('PRODUCT OFFERING', { 
+  // ✅ IPO INTERMEDIARIES
+  if (hasValidContent(data.businessOverview?.ipoIntermediaries)) {
+    checkNewPage(100);
+    addText('IPO INTERMEDIARIES', { 
       font: helveticaBold, 
       size: 14, 
       color: rgb(0, 0.2, 0.4) 
     });
+    yPosition -= 10;
+    addText(data.businessOverview.ipoIntermediaries);
     yPosition -= 20;
-
-    for (const imageData of data.businessOverview.productOffering.images) {
-      try {
-        checkNewPage(200);
-        
-        const imageUrl = imageData.url || imageData.path || imageData;
-        const imageResponse = await fetch(imageUrl);
-        const imageBytes = await imageResponse.arrayBuffer();
-        
-        let image;
-        if (imageUrl.toLowerCase().includes('.png')) {
-          image = await pdfDoc.embedPng(imageBytes);
-        } else {
-          image = await pdfDoc.embedJpg(imageBytes);
-        }
-        
-        const maxWidth = 400;
-        const maxHeight = 200;
-        const { width, height } = image.scale(
-          Math.min(maxWidth / image.width, maxHeight / image.height)
-        );
-        
-        currentPage.drawImage(image, {
-          x: margin + (contentWidth - width) / 2,
-          y: yPosition - height,
-          width,
-          height
-        });
-        
-        yPosition -= height + 20;
-        
-        if (imageData.originalName || imageData.filename) {
-          addText(imageData.originalName || imageData.filename, {
-            font: helvetica,
-            size: 9,
-            color: rgb(0.5, 0.5, 0.5)
-          });
-        }
-        
-      } catch (error) {
-        console.warn('Failed to embed image:', error);
-        addText(`[Image: ${imageData.originalName || 'Product Image'}]`, {
-          color: rgb(0.7, 0.7, 0.7),
-          font: helvetica,
-          size: 10
-        });
-      }
-    }
   }
 
   return await pdfDoc.save();
 }
 
-// Helper functions for display formatting (unchanged)
+// Helper functions remain the same
 function getFundingTypeDisplay(type) {
   const types = {
     'ipo': 'IPO',
@@ -402,5 +538,4 @@ function getSpecificPurposeDisplay(fundingType, purpose) {
   return purposeMap[fundingType]?.[purpose] || purpose || 'N/A';
 }
 
-// Export only the main function and helpers - no duplicates
 export { getFundingTypeDisplay, getSpecificPurposeDisplay };
