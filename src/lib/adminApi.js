@@ -39,6 +39,10 @@ class AdminApiService {
   async getUserCompletionStatus(userId) {
     return this.makeRequest(`/${userId}/completion-status`);
   }
+
+  async getInvestorInvestments(investorId) {
+    return this.makeRequest(`/admin/investors/${investorId}/investments`);
+  }
 }
 
 // Create and export a singleton instance

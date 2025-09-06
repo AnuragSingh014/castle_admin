@@ -12,6 +12,7 @@ import InvestorProfileView from '@/components/admin/InvestorProfileView';
 import InvestorCFODashboardView from '@/components/admin/InvestorCFODashboardView';
 import InvestorCFODashboardCharts from '@/components/admin/InvestorCFODashboardCharts';
 import InvestorCEODashboardCharts from '@/components/admin/InvestorCEODashboardCharts';
+import InvestorInvestmentPortfolioView from '@/components/admin/InvestorInvestmentPortfolioView';
 import { 
     TrendingUp, 
     User,
@@ -219,7 +220,7 @@ const InvestorDetails = ({ investorId, onBack }) => {
     }
   };
 
-  // Navigation sections for investor
+  // ✅ FIXED: Navigation sections for investor with proper structure
   const sections = [
     {
       id: 'investorProfile',
@@ -227,6 +228,13 @@ const InvestorDetails = ({ investorId, onBack }) => {
       icon: User,
       description: 'Personal and professional info',
       component: InvestorProfileView
+    },
+    {
+      id: 'investmentPortfolio', // ✅ FIXED: Added missing id
+      title: 'Investment Portfolio', // ✅ FIXED: Changed name to title
+      icon: TrendingUp,
+      description: 'investment portfolio',
+      component: InvestorInvestmentPortfolioView // ✅ FIXED: Added missing component
     },
     {
       id: 'ceoDashboard',
@@ -333,9 +341,9 @@ const InvestorDetails = ({ investorId, onBack }) => {
       case 'completed':
         return <Badge className="bg-green-100 text-green-800 border-green-200 text-xs px-2 py-1">Completed</Badge>;
       case 'partial':
-        return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200 text-xs px-2 py-1">Partial</Badge>;
+        return <Badge className="bg-yellow-100 text-green-800 border-green-200 text-xs px-2 py-1">Partial</Badge>;
       case 'empty':
-        return <Badge className="bg-gray-100 text-gray-600 border-gray-200 text-xs px-2 py-1">Not Started</Badge>;
+        return <Badge className="bg-gray-100 text-green-800 border-green-200 text-xs px-2 py-1">Not Started</Badge>;
       default:
         return <Badge variant="outline" className="text-xs px-2 py-1">Unknown</Badge>;
     }
@@ -345,17 +353,17 @@ const InvestorDetails = ({ investorId, onBack }) => {
   const getStatusIcon = (status) => {
     switch (status) {
       case 'completed':
-        return <CheckCircle2 className="w-4 h-4 text-green-600" />;
+        // return <CheckCircle2 className="w-4 h-4 text-green-600" />;
       case 'partial':
-        return <Clock className="w-4 h-4 text-yellow-600" />;
+        // return <Clock className="w-4 h-4 text-yellow-600" />;
       case 'empty':
-        return <AlertCircle className="w-4 h-4 text-gray-400" />;
+        // return <AlertCircle className="w-4 h-4 text-gray-400" />;
       default:
-        return <AlertCircle className="w-4 h-4 text-gray-400" />;
+        // return <AlertCircle className="w-4 h-4 text-gray-400" />;
     }
   };
 
-  // Render the selected section component
+  // ✅ FIXED: Render the selected section component
   const renderSectionContent = () => {
     const section = sections.find(s => s.id === selectedSection);
     if (!section) {
@@ -400,6 +408,15 @@ const InvestorDetails = ({ investorId, onBack }) => {
         <Component 
           data={investorDashboardData?.investorProfile} 
           dashboardData={investorDashboardData}
+        />
+      );
+    }
+    
+    // ✅ FIXED: Special handling for investmentPortfolio section
+    if (selectedSection === 'investmentPortfolio') {
+      return (
+        <Component 
+          investorId={investorId}
         />
       );
     }
@@ -589,21 +606,15 @@ const InvestorDetails = ({ investorId, onBack }) => {
                         >
                           <div className="flex items-start space-x-3 w-full min-w-0">
                             {/* Icon */}
-                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                              isSelected 
-                                ? "bg-white/20" 
-                                : status === 'completed' 
-                                  ? "bg-green-100" 
-                                  : "bg-gray-100"
-                            }`}>
-                              <Icon className={`w-4 h-4 ${
-                                isSelected 
-                                  ? "text-white" 
-                                  : status === 'completed' 
-                                    ? "text-green-600" 
-                                    : "text-gray-400"
-                              }`} />
-                            </div>
+                            {/* Icon */}
+<div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+  isSelected ? "bg-white/20" : "bg-green-100"
+}`}>
+  <Icon className={`w-4 h-4 ${
+    isSelected ? "text-white" : "text-green-600"
+  }`} />
+</div>
+
                             
                             {/* Content */}
                             <div className="flex-1 min-w-0">
