@@ -18,12 +18,86 @@ import {
   Briefcase,
   PieChart,
   Target,
-  Activity
+  Activity,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
 
 const AdminCFODashboardView = ({ data, userName, userEmail }) => {
   const months = ['apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec', 'jan', 'feb', 'mar'];
   const monthLabels = ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar'];
+
+  // State for managing collapsed sections
+  const [collapsedSections, setCollapsedSections] = useState({
+    // P&L Statement
+    revenue: false,
+    costOfGoodsSold: true,
+    grossProfit: true,
+    operatingExpenses: true,
+    operatingProfit: true,
+    otherIncome: true,
+    financeExpense: true,
+    netProfitBeforeTax: true,
+    netProfitMargin: true,
+    // Cash Flow Statement
+    netOperatingCashFlow: true,
+    netFinancingCashFlow: true,
+    netInvestingCashFlow: true,
+    cashAtEndOfMonth: true,
+    // Balance Sheet - Assets
+    fixedAssets: true,
+    currentAssets: true,
+    otherAssets: true,
+    totalAssets: true,
+    // Balance Sheet - Liabilities & Equity
+    currentLiabilities: true,
+    longTermLiabilities: true,
+    equity: true,
+    totalLiabilitiesAndEquity: true,
+    // Working Capital Management
+    accountsReceivable: true,
+    daysReceivableOutstanding: true,
+    overdueAccountsReceivable: true,
+    overdueReceivablePercentage: true,
+    accountsPayable: true,
+    daysPayableOutstanding: true,
+    inventory: true,
+    daysInventoryOutstanding: true,
+    // Financial Ratios
+    currentRatio: true,
+    quickRatio: true,
+    debtEquityRatio: true
+  });
+
+  // Toggle section collapse
+  const toggleSection = (sectionKey) => {
+    setCollapsedSections(prev => ({
+      ...prev,
+      [sectionKey]: !prev[sectionKey]
+    }));
+  };
+
+  // Expand all sections in a category
+  const expandAllInCategory = (categoryFields) => {
+    setCollapsedSections(prev => {
+      const updated = { ...prev };
+      categoryFields.forEach(field => {
+        updated[field] = false;
+      });
+      return updated;
+    });
+  };
+
+  // Collapse all sections in a category
+  const collapseAllInCategory = (categoryFields) => {
+    setCollapsedSections(prev => {
+      const updated = { ...prev };
+      categoryFields.forEach(field => {
+        updated[field] = true;
+      });
+      return updated;
+    });
+  };
 
   // Format currency
   const formatCurrency = (value) => {
@@ -54,11 +128,12 @@ const AdminCFODashboardView = ({ data, userName, userEmail }) => {
     }, 0);
   };
 
-  // ✅ REMOVED DATA CHECKING - ALWAYS RENDER ALL SECTIONS
+  // Enhanced render function with collapsible functionality
   const renderFinancialSection = (title, fieldName, icon, types = ['actual', 'target', 'lastYear'], isCalculated = false, isRatio = false) => {
     const fieldData = data?.[fieldName] || {};
+    const isCollapsed = collapsedSections[fieldName];
     
-    // ✅ CREATE DEFAULT STRUCTURE IF DATA DOESN'T EXIST
+    // Create default structure if data doesn't exist
     const defaultData = {};
     types.forEach(type => {
       defaultData[type] = {};
@@ -68,81 +143,116 @@ const AdminCFODashboardView = ({ data, userName, userEmail }) => {
     });
 
     return (
-      <Card className="mb-6">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center space-x-2">
-            {icon}
-            <span>{title}</span>
-            <Badge variant="outline" className="ml-2">
-              {isCalculated ? (
-                <>
-                  <Calculator className="w-3 h-3 mr-1" />
-                  Auto-calculated
-                </>
+      <Card className="mb-4 transition-all duration-200 hover:shadow-md">
+        <CardHeader 
+          className="pb-3 cursor-pointer select-none hover:bg-slate-50 transition-colors duration-150 rounded-t-lg"
+          onClick={() => toggleSection(fieldName)}
+        >
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              {icon}
+              <span>{title}</span>
+              <Badge variant="outline" className="ml-2">
+                {isCalculated ? (
+                  <>
+                    <Calculator className="w-3 h-3 mr-1" />
+                    Auto-calculated
+                  </>
+                ) : (
+                  'Input Data'
+                )}
+              </Badge>
+            </div>
+            <div className="flex items-center space-x-2">
+              {isCollapsed ? (
+                <ChevronRight className="w-5 h-5 text-slate-500 transition-transform duration-200" />
               ) : (
-                'Input Data'
+                <ChevronDown className="w-5 h-5 text-slate-500 transition-transform duration-200" />
               )}
-            </Badge>
+            </div>
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full border border-gray-200 rounded-lg">
-              <thead>
-                <tr className="bg-slate-50">
-                  <th className="border border-gray-200 px-3 py-2 text-left font-medium text-slate-700">Month</th>
-                  {types.map(type => (
-                    <th key={type} className="border border-gray-200 px-3 py-2 text-center font-medium text-slate-700 capitalize">
-                      {type === 'lastYear' ? 'Last Year' : type}
-                    </th>
+        
+        <div className={`transition-all duration-300 ease-in-out overflow-hidden ${
+          isCollapsed ? 'max-h-0' : 'max-h-[2000px]'
+        }`}>
+          <CardContent className="pt-0">
+            <div className="overflow-x-auto">
+              <table className="w-full border border-gray-200 rounded-lg">
+                <thead>
+                  <tr className="bg-slate-50">
+                    <th className="border border-gray-200 px-3 py-2 text-left font-medium text-slate-700">Month</th>
+                    {types.map(type => (
+                      <th key={type} className="border border-gray-200 px-3 py-2 text-center font-medium text-slate-700 capitalize">
+                        {type === 'lastYear' ? 'Last Year' : type}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {monthLabels.map((monthLabel, index) => (
+                    <tr key={months[index]} className="hover:bg-slate-25">
+                      <td className="border border-gray-200 px-3 py-2 font-medium text-slate-800">
+                        {monthLabel}
+                      </td>
+                      {types.map(type => {
+                        const value = defaultData[type]?.[months[index]] || 0;
+                        return (
+                          <td key={type} className="border border-gray-200 px-3 py-2 text-center text-slate-600">
+                            {isRatio && (fieldName.includes('Ratio') || fieldName.includes('ratio'))
+                              ? formatRatio(value)
+                              : (fieldName === 'netProfitMargin' || fieldName === 'overdueReceivablePercentage') 
+                                ? formatPercentage(value)
+                                : formatCurrency(value)
+                            }
+                          </td>
+                        );
+                      })}
+                    </tr>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
-                {monthLabels.map((monthLabel, index) => (
-                  <tr key={months[index]} className="hover:bg-slate-25">
-                    <td className="border border-gray-200 px-3 py-2 font-medium text-slate-800">
-                      {monthLabel}
-                    </td>
+                  {/* YTD Total Row */}
+                  <tr className="bg-slate-100 font-semibold">
+                    <td className="border border-gray-200 px-3 py-2 text-slate-800">YTD Total</td>
                     {types.map(type => {
-                      const value = defaultData[type]?.[months[index]] || 0;
+                      const ytdTotal = calculateYTDTotal(fieldData, type);
                       return (
-                        <td key={type} className="border border-gray-200 px-3 py-2 text-center text-slate-600">
+                        <td key={type} className="border border-gray-200 px-3 py-2 text-center text-slate-800">
                           {isRatio && (fieldName.includes('Ratio') || fieldName.includes('ratio'))
-                            ? formatRatio(value)
-                            : (fieldName === 'netProfitMargin' || fieldName === 'overdueReceivablePercentage') 
-                              ? formatPercentage(value)
-                              : formatCurrency(value)
+                            ? formatRatio(ytdTotal / 12) // Average for ratios
+                            : (fieldName === 'netProfitMargin' || fieldName === 'overdueReceivablePercentage')
+                              ? formatPercentage(ytdTotal / 12) // Average for percentages
+                              : formatCurrency(ytdTotal)
                           }
                         </td>
                       );
                     })}
                   </tr>
-                ))}
-                {/* YTD Total Row */}
-                <tr className="bg-slate-100 font-semibold">
-                  <td className="border border-gray-200 px-3 py-2 text-slate-800">YTD Total</td>
-                  {types.map(type => {
-                    const ytdTotal = calculateYTDTotal(fieldData, type);
-                    return (
-                      <td key={type} className="border border-gray-200 px-3 py-2 text-center text-slate-800">
-                        {isRatio && (fieldName.includes('Ratio') || fieldName.includes('ratio'))
-                          ? formatRatio(ytdTotal / 12) // Average for ratios
-                          : (fieldName === 'netProfitMargin' || fieldName === 'overdueReceivablePercentage')
-                            ? formatPercentage(ytdTotal / 12) // Average for percentages
-                            : formatCurrency(ytdTotal)
-                        }
-                      </td>
-                    );
-                  })}
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </div>
       </Card>
     );
   };
+
+  // Category control buttons component
+  const CategoryControls = ({ categoryName, categoryFields }) => (
+    <div className="flex items-center space-x-2 mb-4">
+      <button
+        onClick={() => expandAllInCategory(categoryFields)}
+        className="px-3 py-1 text-xs bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-md transition-colors duration-150 font-medium"
+      >
+        Expand All
+      </button>
+      <button
+        onClick={() => collapseAllInCategory(categoryFields)}
+        className="px-3 py-1 text-xs bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-md transition-colors duration-150 font-medium"
+      >
+        Collapse All
+      </button>
+    </div>
+  );
 
   // Render summary cards
   const renderSummaryCards = () => {
@@ -176,7 +286,7 @@ const AdminCFODashboardView = ({ data, userName, userEmail }) => {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {summaryData.map((item, index) => (
-          <Card key={index} className="relative overflow-hidden">
+          <Card key={index} className="relative overflow-hidden hover:shadow-md transition-shadow duration-200">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div className={`p-3 rounded-lg bg-${item.color}-100`}>
@@ -210,7 +320,15 @@ const AdminCFODashboardView = ({ data, userName, userEmail }) => {
     );
   }
 
-  console.log('Admin CFO Dashboard Data:', data); // ✅ DEBUG LOG
+  console.log('Admin CFO Dashboard Data:', data);
+
+  // Define category fields for bulk operations
+  const plFields = ['revenue', 'costOfGoodsSold', 'grossProfit', 'operatingExpenses', 'operatingProfit', 'otherIncome', 'financeExpense', 'netProfitBeforeTax', 'netProfitMargin'];
+  const cashFlowFields = ['netOperatingCashFlow', 'netFinancingCashFlow', 'netInvestingCashFlow', 'cashAtEndOfMonth'];
+  const assetsFields = ['fixedAssets', 'currentAssets', 'otherAssets', 'totalAssets'];
+  const liabilitiesEquityFields = ['currentLiabilities', 'longTermLiabilities', 'equity', 'totalLiabilitiesAndEquity'];
+  const workingCapitalFields = ['accountsReceivable', 'daysReceivableOutstanding', 'overdueAccountsReceivable', 'overdueReceivablePercentage', 'accountsPayable', 'daysPayableOutstanding', 'inventory', 'daysInventoryOutstanding'];
+  const ratiosFields = ['currentRatio', 'quickRatio', 'debtEquityRatio'];
 
   return (
     <div className="space-y-6">
@@ -235,13 +353,15 @@ const AdminCFODashboardView = ({ data, userName, userEmail }) => {
 
       <Separator />
 
-      {/* ✅ ALWAYS RENDER ALL SECTIONS - MATCHING YOUR FRONTEND STRUCTURE */}
       {/* P&L Statement Section */}
       <div>
-        <h3 className="text-xl font-semibold text-slate-800 mb-4 flex items-center">
-          <DollarSign className="w-5 h-5 mr-2 text-green-600" />
-          Profit & Loss Statement
-        </h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xl font-semibold text-slate-800 flex items-center">
+            <DollarSign className="w-5 h-5 mr-2 text-green-600" />
+            Profit & Loss Statement
+          </h3>
+          <CategoryControls categoryName="P&L Statement" categoryFields={plFields} />
+        </div>
 
         {renderFinancialSection('Revenue', 'revenue', <DollarSign className="w-5 h-5 text-green-600" />)}
         {renderFinancialSection('Cost of Goods Sold', 'costOfGoodsSold', <BarChart3 className="w-5 h-5 text-red-600" />)}
@@ -258,10 +378,13 @@ const AdminCFODashboardView = ({ data, userName, userEmail }) => {
 
       {/* Cash Flow Statement Section */}
       <div>
-        <h3 className="text-xl font-semibold text-slate-800 mb-4 flex items-center">
-          <TrendingUp className="w-5 h-5 mr-2 text-green-600" />
-          Cash Flow Statement
-        </h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xl font-semibold text-slate-800 flex items-center">
+            <TrendingUp className="w-5 h-5 mr-2 text-green-600" />
+            Cash Flow Statement
+          </h3>
+          <CategoryControls categoryName="Cash Flow Statement" categoryFields={cashFlowFields} />
+        </div>
 
         {renderFinancialSection('Net Operating Cash Flow', 'netOperatingCashFlow', <TrendingUp className="w-5 h-5 text-green-600" />, ['actual'])}
         {renderFinancialSection('Net Financing Cash Flow', 'netFinancingCashFlow', <DollarSign className="w-5 h-5 text-blue-600" />, ['actual'])}
@@ -273,10 +396,13 @@ const AdminCFODashboardView = ({ data, userName, userEmail }) => {
 
       {/* Balance Sheet - Assets Section */}
       <div>
-        <h3 className="text-xl font-semibold text-slate-800 mb-4 flex items-center">
-          <Building2 className="w-5 h-5 mr-2 text-blue-600" />
-          Balance Sheet - Assets
-        </h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xl font-semibold text-slate-800 flex items-center">
+            <Building2 className="w-5 h-5 mr-2 text-blue-600" />
+            Balance Sheet - Assets
+          </h3>
+          <CategoryControls categoryName="Balance Sheet - Assets" categoryFields={assetsFields} />
+        </div>
 
         {renderFinancialSection('Fixed Assets', 'fixedAssets', <Building2 className="w-5 h-5 text-gray-600" />, ['actual'])}
         {renderFinancialSection('Current Assets', 'currentAssets', <PieChart className="w-5 h-5 text-blue-600" />, ['actual'])}
@@ -288,10 +414,13 @@ const AdminCFODashboardView = ({ data, userName, userEmail }) => {
 
       {/* Balance Sheet - Liabilities & Equity Section */}
       <div>
-        <h3 className="text-xl font-semibold text-slate-800 mb-4 flex items-center">
-          <PieChart className="w-5 h-5 mr-2 text-red-600" />
-          Balance Sheet - Liabilities & Equity
-        </h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xl font-semibold text-slate-800 flex items-center">
+            <PieChart className="w-5 h-5 mr-2 text-red-600" />
+            Balance Sheet - Liabilities & Equity
+          </h3>
+          <CategoryControls categoryName="Balance Sheet - Liabilities & Equity" categoryFields={liabilitiesEquityFields} />
+        </div>
 
         {renderFinancialSection('Current Liabilities', 'currentLiabilities', <AlertCircle className="w-5 h-5 text-red-600" />, ['actual'])}
         {renderFinancialSection('Long Term Liabilities', 'longTermLiabilities', <BarChart3 className="w-5 h-5 text-orange-600" />, ['actual'])}
@@ -303,10 +432,13 @@ const AdminCFODashboardView = ({ data, userName, userEmail }) => {
 
       {/* Working Capital Management Section */}
       <div>
-        <h3 className="text-xl font-semibold text-slate-800 mb-4 flex items-center">
-          <BarChart3 className="w-5 h-5 mr-2 text-indigo-600" />
-          Working Capital Management
-        </h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xl font-semibold text-slate-800 flex items-center">
+            <BarChart3 className="w-5 h-5 mr-2 text-indigo-600" />
+            Working Capital Management
+          </h3>
+          <CategoryControls categoryName="Working Capital Management" categoryFields={workingCapitalFields} />
+        </div>
 
         {renderFinancialSection('Accounts Receivable', 'accountsReceivable', <Building2 className="w-5 h-5 text-blue-600" />, ['actual'])}
         {renderFinancialSection('Days Receivable Outstanding', 'daysReceivableOutstanding', <BarChart3 className="w-5 h-5 text-orange-600" />, ['actual'])}
@@ -322,10 +454,13 @@ const AdminCFODashboardView = ({ data, userName, userEmail }) => {
 
       {/* Financial Ratios Section */}
       <div>
-        <h3 className="text-xl font-semibold text-slate-800 mb-4 flex items-center">
-          <Calculator className="w-5 h-5 mr-2 text-green-600" />
-          Financial Ratios
-        </h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xl font-semibold text-slate-800 flex items-center">
+            <Calculator className="w-5 h-5 mr-2 text-green-600" />
+            Financial Ratios
+          </h3>
+          <CategoryControls categoryName="Financial Ratios" categoryFields={ratiosFields} />
+        </div>
 
         {renderFinancialSection('Current Ratio', 'currentRatio', <TrendingUp className="w-5 h-5 text-blue-600" />, ['actual'], true, true)}
         {renderFinancialSection('Quick Ratio', 'quickRatio', <BarChart3 className="w-5 h-5 text-green-600" />, ['actual'], true, true)}

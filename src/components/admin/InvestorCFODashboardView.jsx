@@ -17,7 +17,9 @@ import {
   PieChart,
   Briefcase,
   Activity,
-  Target
+  Target,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
 
 const InvestorCFODashboardView = ({ investorId, loading }) => {
@@ -27,6 +29,77 @@ const InvestorCFODashboardView = ({ investorId, loading }) => {
 
   const months = ['apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec', 'jan', 'feb', 'mar'];
   const monthLabels = ['Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar'];
+
+  // State for managing collapsed sections
+  const [collapsedSections, setCollapsedSections] = useState({
+    // P&L Statement
+    revenue: false,
+    costOfGoodsSold: true,
+    grossProfit: true,
+    operatingExpenses: true,
+    operatingProfit: true,
+    otherIncome: true,
+    financeExpense: true,
+    netProfitBeforeTax: true,
+    netProfitMargin: true,
+    // Cash Flow Statement
+    netOperatingCashFlow: true,
+    netFinancingCashFlow: true,
+    netInvestingCashFlow: true,
+    cashAtEndOfMonth: true,
+    // Balance Sheet
+    fixedAssets: true,
+    currentAssets: true,
+    otherAssets: true,
+    totalAssets: true,
+    currentLiabilities: true,
+    longTermLiabilities: true,
+    equity: true,
+    totalLiabilitiesAndEquity: true,
+    // Working Capital Management
+    accountsReceivable: true,
+    daysReceivableOutstanding: true,
+    overdueAccountsReceivable: true,
+    overdueReceivablePercentage: true,
+    accountsPayable: true,
+    daysPayableOutstanding: true,
+    inventory: true,
+    daysInventoryOutstanding: true,
+    // Financial Ratios
+    currentRatio: true,
+    quickRatio: true,
+    debtEquityRatio: true
+  });
+
+  // Toggle section collapse
+  const toggleSection = (sectionKey) => {
+    setCollapsedSections(prev => ({
+      ...prev,
+      [sectionKey]: !prev[sectionKey]
+    }));
+  };
+
+  // Expand all sections in a category
+  const expandAllInCategory = (categoryFields) => {
+    setCollapsedSections(prev => {
+      const updated = { ...prev };
+      categoryFields.forEach(field => {
+        updated[field] = false;
+      });
+      return updated;
+    });
+  };
+
+  // Collapse all sections in a category
+  const collapseAllInCategory = (categoryFields) => {
+    setCollapsedSections(prev => {
+      const updated = { ...prev };
+      categoryFields.forEach(field => {
+        updated[field] = true;
+      });
+      return updated;
+    });
+  };
 
   // Fetch CFO Dashboard data
   useEffect(() => {
@@ -90,88 +163,124 @@ const InvestorCFODashboardView = ({ investorId, loading }) => {
     }, 0);
   };
 
-  // Render financial section with table
+  // Enhanced render function with collapsible functionality
   const renderFinancialSection = (title, fieldName, icon, types = ['actual', 'target', 'lastYear'], isCalculated = false, isRatio = false, isPercentage = false) => {
     const fieldData = dashboardData?.[fieldName];
+    const isCollapsed = collapsedSections[fieldName];
     
     if (!fieldData) return null;
 
     return (
-      <Card className="mb-6">
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center space-x-2">
-            {icon}
-            <span>{title}</span>
-            <Badge variant="outline" className="ml-2">
-              {isCalculated ? (
-                <>
-                  <Calculator className="w-3 h-3 mr-1" />
-                  Auto-calculated
-                </>
+      <Card className="mb-4 transition-all duration-200 hover:shadow-md">
+        <CardHeader 
+          className="pb-3 cursor-pointer select-none hover:bg-slate-50 transition-colors duration-150 rounded-t-lg"
+          onClick={() => toggleSection(fieldName)}
+        >
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              {icon}
+              <span>{title}</span>
+              <Badge variant="outline" className="ml-2">
+                {isCalculated ? (
+                  <>
+                    <Calculator className="w-3 h-3 mr-1" />
+                    Auto-calculated
+                  </>
+                ) : (
+                  'Input Data'
+                )}
+              </Badge>
+            </div>
+            <div className="flex items-center space-x-2">
+              {isCollapsed ? (
+                <ChevronRight className="w-5 h-5 text-slate-500 transition-transform duration-200" />
               ) : (
-                'Input Data'
+                <ChevronDown className="w-5 h-5 text-slate-500 transition-transform duration-200" />
               )}
-            </Badge>
+            </div>
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full border border-gray-200 rounded-lg">
-              <thead>
-                <tr className="bg-slate-50">
-                  <th className="border border-gray-200 px-3 py-2 text-left font-medium text-slate-700">Month</th>
-                  {types.map(type => (
-                    <th key={type} className="border border-gray-200 px-3 py-2 text-center font-medium text-slate-700 capitalize">
-                      {type === 'lastYear' ? 'Last Year' : type}
-                    </th>
+        
+        <div className={`transition-all duration-300 ease-in-out overflow-hidden ${
+          isCollapsed ? 'max-h-0' : 'max-h-[2000px]'
+        }`}>
+          <CardContent className="pt-0">
+            <div className="overflow-x-auto">
+              <table className="w-full border border-gray-200 rounded-lg">
+                <thead>
+                  <tr className="bg-slate-50">
+                    <th className="border border-gray-200 px-3 py-2 text-left font-medium text-slate-700">Month</th>
+                    {types.map(type => (
+                      <th key={type} className="border border-gray-200 px-3 py-2 text-center font-medium text-slate-700 capitalize">
+                        {type === 'lastYear' ? 'Last Year' : type}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {monthLabels.map((monthLabel, index) => (
+                    <tr key={months[index]} className="hover:bg-slate-25">
+                      <td className="border border-gray-200 px-3 py-2 font-medium text-slate-800">
+                        {monthLabel}
+                      </td>
+                      {types.map(type => {
+                        const value = fieldData[type]?.[months[index]] || 0;
+                        return (
+                          <td key={type} className="border border-gray-200 px-3 py-2 text-center text-slate-600">
+                            {isPercentage 
+                              ? formatPercentage(value)
+                              : isRatio 
+                              ? formatRatio(value)
+                              : formatCurrency(value)
+                            }
+                          </td>
+                        );
+                      })}
+                    </tr>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
-                {monthLabels.map((monthLabel, index) => (
-                  <tr key={months[index]} className="hover:bg-slate-25">
-                    <td className="border border-gray-200 px-3 py-2 font-medium text-slate-800">
-                      {monthLabel}
-                    </td>
+                  {/* YTD Total Row */}
+                  <tr className="bg-slate-100 font-semibold">
+                    <td className="border border-gray-200 px-3 py-2 text-slate-800">YTD Total</td>
                     {types.map(type => {
-                      const value = fieldData[type]?.[months[index]] || 0;
+                      const ytdTotal = calculateYTDTotal(fieldData, type);
                       return (
-                        <td key={type} className="border border-gray-200 px-3 py-2 text-center text-slate-600">
-                          {isPercentage 
-                            ? formatPercentage(value)
-                            : isRatio 
-                            ? formatRatio(value)
-                            : formatCurrency(value)
+                        <td key={type} className="border border-gray-200 px-3 py-2 text-center text-slate-800">
+                          {isPercentage
+                            ? formatPercentage(ytdTotal / 12) // Average for percentages
+                            : isRatio
+                            ? formatRatio(ytdTotal / 12) // Average for ratios
+                            : formatCurrency(ytdTotal)
                           }
                         </td>
                       );
                     })}
                   </tr>
-                ))}
-                {/* YTD Total Row */}
-                <tr className="bg-slate-100 font-semibold">
-                  <td className="border border-gray-200 px-3 py-2 text-slate-800">YTD Total</td>
-                  {types.map(type => {
-                    const ytdTotal = calculateYTDTotal(fieldData, type);
-                    return (
-                      <td key={type} className="border border-gray-200 px-3 py-2 text-center text-slate-800">
-                        {isPercentage
-                          ? formatPercentage(ytdTotal / 12) // Average for percentages
-                          : isRatio
-                          ? formatRatio(ytdTotal / 12) // Average for ratios
-                          : formatCurrency(ytdTotal)
-                        }
-                      </td>
-                    );
-                  })}
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </CardContent>
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </div>
       </Card>
     );
   };
+
+  // Category control buttons component
+  const CategoryControls = ({ categoryName, categoryFields }) => (
+    <div className="flex items-center space-x-2 mb-4">
+      <button
+        onClick={() => expandAllInCategory(categoryFields)}
+        className="px-3 py-1 text-xs bg-blue-100 text-blue-700 hover:bg-blue-200 rounded-md transition-colors duration-150 font-medium"
+      >
+        Expand All
+      </button>
+      <button
+        onClick={() => collapseAllInCategory(categoryFields)}
+        className="px-3 py-1 text-xs bg-gray-100 text-gray-700 hover:bg-gray-200 rounded-md transition-colors duration-150 font-medium"
+      >
+        Collapse All
+      </button>
+    </div>
+  );
 
   // Render summary cards
   const renderSummaryCards = () => {
@@ -206,7 +315,7 @@ const InvestorCFODashboardView = ({ investorId, loading }) => {
     return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {summaryData.map((item, index) => (
-          <Card key={index} className="relative overflow-hidden">
+          <Card key={index} className="relative overflow-hidden hover:shadow-md transition-shadow duration-200">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div className={`p-3 rounded-lg bg-${item.color}-100`}>
@@ -267,6 +376,13 @@ const InvestorCFODashboardView = ({ investorId, loading }) => {
     );
   }
 
+  // Define category fields for bulk operations
+  const plFields = ['revenue', 'costOfGoodsSold', 'grossProfit', 'operatingExpenses', 'operatingProfit', 'otherIncome', 'financeExpense', 'netProfitBeforeTax', 'netProfitMargin'];
+  const cashFlowFields = ['netOperatingCashFlow', 'netFinancingCashFlow', 'netInvestingCashFlow', 'cashAtEndOfMonth'];
+  const balanceSheetFields = ['fixedAssets', 'currentAssets', 'otherAssets', 'totalAssets', 'currentLiabilities', 'longTermLiabilities', 'equity', 'totalLiabilitiesAndEquity'];
+  const workingCapitalFields = ['accountsReceivable', 'daysReceivableOutstanding', 'overdueAccountsReceivable', 'overdueReceivablePercentage', 'accountsPayable', 'daysPayableOutstanding', 'inventory', 'daysInventoryOutstanding'];
+  const ratiosFields = ['currentRatio', 'quickRatio', 'debtEquityRatio'];
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -288,10 +404,13 @@ const InvestorCFODashboardView = ({ investorId, loading }) => {
 
       {/* P&L Section */}
       <div>
-        <h3 className="text-xl font-semibold text-slate-800 mb-4 flex items-center">
-          <DollarSign className="w-5 h-5 mr-2 text-green-600" />
-          Profit & Loss Statement
-        </h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xl font-semibold text-slate-800 flex items-center">
+            <DollarSign className="w-5 h-5 mr-2 text-green-600" />
+            Profit & Loss Statement
+          </h3>
+          <CategoryControls categoryName="P&L Statement" categoryFields={plFields} />
+        </div>
         
         {renderFinancialSection(
           'Revenue', 
@@ -362,10 +481,13 @@ const InvestorCFODashboardView = ({ investorId, loading }) => {
 
       {/* Cash Flow Section */}
       <div>
-        <h3 className="text-xl font-semibold text-slate-800 mb-4 flex items-center">
-          <Activity className="w-5 h-5 mr-2 text-green-600" />
-          Cash Flow Statement
-        </h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xl font-semibold text-slate-800 flex items-center">
+            <Activity className="w-5 h-5 mr-2 text-green-600" />
+            Cash Flow Statement
+          </h3>
+          <CategoryControls categoryName="Cash Flow Statement" categoryFields={cashFlowFields} />
+        </div>
         
         {renderFinancialSection(
           'Net Operating Cash Flow', 
@@ -400,10 +522,13 @@ const InvestorCFODashboardView = ({ investorId, loading }) => {
 
       {/* Balance Sheet Section */}
       <div>
-        <h3 className="text-xl font-semibold text-slate-800 mb-4 flex items-center">
-          <Briefcase className="w-5 h-5 mr-2 text-blue-600" />
-          Balance Sheet
-        </h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xl font-semibold text-slate-800 flex items-center">
+            <Briefcase className="w-5 h-5 mr-2 text-blue-600" />
+            Balance Sheet
+          </h3>
+          <CategoryControls categoryName="Balance Sheet" categoryFields={balanceSheetFields} />
+        </div>
         
         {renderFinancialSection(
           'Fixed Assets', 
@@ -468,10 +593,13 @@ const InvestorCFODashboardView = ({ investorId, loading }) => {
 
       {/* Working Capital Section */}
       <div>
-        <h3 className="text-xl font-semibold text-slate-800 mb-4 flex items-center">
-          <Target className="w-5 h-5 mr-2 text-indigo-600" />
-          Working Capital Management
-        </h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xl font-semibold text-slate-800 flex items-center">
+            <Target className="w-5 h-5 mr-2 text-indigo-600" />
+            Working Capital Management
+          </h3>
+          <CategoryControls categoryName="Working Capital Management" categoryFields={workingCapitalFields} />
+        </div>
         
         {renderFinancialSection(
           'Accounts Receivable', 
@@ -537,10 +665,13 @@ const InvestorCFODashboardView = ({ investorId, loading }) => {
 
       {/* Financial Ratios Section */}
       <div>
-        <h3 className="text-xl font-semibold text-slate-800 mb-4 flex items-center">
-          <Calculator className="w-5 h-5 mr-2 text-green-600" />
-          Financial Ratios
-        </h3>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xl font-semibold text-slate-800 flex items-center">
+            <Calculator className="w-5 h-5 mr-2 text-green-600" />
+            Financial Ratios
+          </h3>
+          <CategoryControls categoryName="Financial Ratios" categoryFields={ratiosFields} />
+        </div>
         
         {renderFinancialSection(
           'Current Ratio', 
