@@ -144,22 +144,7 @@ const CompanyReferencesView = ({ data, userInfo, loading,userId }) => {
               </div>
             </div>
 
-            {/* Document Status */}
-            <div className="space-y-3">
-              <div className="flex items-center space-x-2">
-                <File className="w-4 h-4 text-purple-600" />
-                <span className="text-sm font-medium text-gray-700">Document Status</span>
-              </div>
-              <div className="bg-white rounded-lg p-3 border border-purple-200">
-                <div className="flex items-center space-x-2 mb-2">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span className="text-sm text-gray-700">PDF Available</span>
-                </div>
-                <p className="text-xs text-gray-500">
-                  Document ready for download
-                </p>
-              </div>
-            </div>
+            
 
             {/* Download Action */}
             <div className="space-y-3">
