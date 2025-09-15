@@ -116,7 +116,7 @@ const CompanyReferencesView = ({ data, userInfo, loading,userId }) => {
               </div>
               <div>
                 <CardTitle className="text-xl text-purple-900">Company Documents</CardTitle>
-                <p className="text-purple-700">Download investor's presentation</p>
+                <p className="text-purple-700">Download company uploaded pitch deck</p>
               </div>
             </div>
             <Badge className="bg-purple-100 text-purple-800 border-purple-200">

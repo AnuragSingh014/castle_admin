@@ -343,6 +343,13 @@ const Details = ({ userId, onBack }) => {
       component: AdminInformationSheetView
     },
     {
+      id: 'loanRequest',
+      title: 'Fund Requirement',
+      icon: DollarSign,
+      description: 'Funding requirements',
+      component: AdminLoanRequestView
+    },
+    {
       id: 'beneficialOwnerCertification',
       title: 'Beneficial Owner',
       icon: User,
@@ -369,13 +376,6 @@ const Details = ({ userId, onBack }) => {
       icon: DollarSignIcon,
       description: 'Loan application details',
       component: AdminLoanDetailsView
-    },
-    {
-      id: 'loanRequest',
-      title: 'Loan Request',
-      icon: DollarSign,
-      description: 'Funding requirements',
-      component: AdminLoanRequestView
     },
     {
       id: 'ceoDashboard',
