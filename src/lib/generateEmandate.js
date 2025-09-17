@@ -107,18 +107,11 @@ export async function generateEmandatePDF(data) {
   const founderName = safeText(data.founderName, 'Founder Name');
   const founderTitle = safeText(data.founderTitle, 'Founder');
   
-  const signatureDate = data.signatureUploadDate 
-    ? new Date(data.signatureUploadDate).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      })
-    : new Date().toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
-
+  const signatureDate = new Date().toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
   // Header with company name (left) and date (right)
   currentPage.drawText(`"${companyName}"`, {
     x: marginLeft,
