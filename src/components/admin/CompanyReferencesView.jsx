@@ -1,5 +1,5 @@
 // src/components/admin/CompanyReferencesView.jsx
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -17,11 +17,15 @@ import {
   Download,
   File,
   Calendar,
-  HardDrive
+  HardDrive,
+  Upload,
+  RefreshCw
 } from 'lucide-react';
 
-const CompanyReferencesView = ({ data, userInfo, loading,userId }) => {
+const CompanyReferencesView = ({ data, userInfo, loading, userId }) => {
   const [downloadLoading, setDownloadLoading] = useState(false);
+  const [uploadLoading, setUploadLoading] = useState(false);
+  const fileInputRef = useRef(null);
 
   // Function to handle PDF download
   const handleDownloadPDF = async () => {
@@ -34,13 +38,15 @@ const CompanyReferencesView = ({ data, userInfo, loading,userId }) => {
       return;
     }
     
+    setDownloadLoading(true);
+    
     try {
       const token = localStorage.getItem('admin_token');
       if (!token) {
         throw new Error('No authentication token found');
       }
 
-      const response = await fetch(`https://castle-backend.onrender.com/api/admin/users/${userId}/pdf/download`, {
+      const response = await fetch(`https://castle-backend.onrender.com/api/admin/users/${userIdToUse}/pdf/download`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token}`
@@ -49,7 +55,7 @@ const CompanyReferencesView = ({ data, userInfo, loading,userId }) => {
 
       if (!response.ok) {
         if (response.status === 404) {
-          alert('📄 No PDF document found for this user');
+          alert('📄 No PDF uploaded. Please upload a presentation first.');
           return;
         }
         throw new Error(`Failed to download PDF: ${response.status}`);
@@ -71,6 +77,82 @@ const CompanyReferencesView = ({ data, userInfo, loading,userId }) => {
       alert(`❌ Failed to download PDF: ${err.message}`);
     } finally {
       setDownloadLoading(false);
+    }
+  };
+
+  // Function to trigger file input
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  // Function to handle file selection and upload
+  const handleFileUpload = async (event) => {
+    const file = event.target.files[0];
+    
+    if (!file) return;
+
+    // Validate file type
+    if (file.type !== 'application/pdf') {
+      alert('❌ Please select a PDF file only.');
+      return;
+    }
+
+    // Validate file size (15MB limit)
+    if (file.size > 15 * 1024 * 1024) {
+      alert('❌ File size must be less than 15MB.');
+      return;
+    }
+
+    const userIdToUse = userId || userInfo?.id || userInfo?._id;
+    
+    if (!userIdToUse) {
+      alert('❌ User ID not found. Cannot upload PDF.');
+      return;
+    }
+
+    setUploadLoading(true);
+
+    try {
+      const token = localStorage.getItem('admin_token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      const formData = new FormData();
+      formData.append('presentation', file);
+      formData.append('title', `${userInfo?.name || 'Company'} Presentation`);
+      formData.append('description', 'Company presentation uploaded by admin');
+
+      const response = await fetch(`https://castle-backend.onrender.com/api/admin/users/${userIdToUse}/pdf/replace`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `Upload failed: ${response.status}`);
+      }
+
+      const result = await response.json();
+      
+      if (result.success) {
+        alert('✅ PDF uploaded successfully!');
+      } else {
+        throw new Error(result.message || 'Upload failed');
+      }
+      
+    } catch (err) {
+      console.error('Error uploading PDF:', err);
+      alert(`❌ Failed to upload PDF: ${err.message}`);
+    } finally {
+      setUploadLoading(false);
+      // Clear the file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     }
   };
 
@@ -144,15 +226,29 @@ const CompanyReferencesView = ({ data, userInfo, loading,userId }) => {
               </div>
             </div>
 
-            
+            {/* File Info */}
+            <div className="space-y-3">
+              <div className="flex items-center space-x-2">
+                <File className="w-4 h-4 text-purple-600" />
+                <span className="text-sm font-medium text-gray-700">File Information</span>
+              </div>
+              <div className="bg-white rounded-lg p-3 border border-purple-200">
+                <p className="text-sm text-purple-900">PDF Presentation</p>
+        
+                <p className="text-xs text-gray-500 mt-1">
+                  Last updated: {new Date().toLocaleDateString()}
+                </p>
+              </div>
+            </div>
 
-            {/* Download Action */}
+            {/* Download/Upload Actions */}
             <div className="space-y-3">
               <div className="flex items-center space-x-2">
                 <Download className="w-4 h-4 text-purple-600" />
                 <span className="text-sm font-medium text-gray-700">Actions</span>
               </div>
-              <div className="bg-white rounded-lg p-3 border border-purple-200">
+              <div className="bg-white rounded-lg p-3 border border-purple-200 space-y-2">
+                {/* Download Button */}
                 <Button
                   onClick={handleDownloadPDF}
                   disabled={downloadLoading}
@@ -170,6 +266,36 @@ const CompanyReferencesView = ({ data, userInfo, loading,userId }) => {
                     </>
                   )}
                 </Button>
+
+                {/* Upload Button */}
+                <Button
+                  onClick={handleUploadClick}
+                  disabled={uploadLoading}
+                  variant="outline"
+                  className="w-full border-purple-300 text-purple-700 hover:bg-purple-50 hover:border-purple-400 transition-all duration-200"
+                >
+                  {uploadLoading ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-purple-500/30 border-t-purple-500 rounded-full animate-spin mr-2"></div>
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4 mr-2" />
+                      Upload New PDF
+                    </>
+                  )}
+                </Button>
+
+                {/* Hidden File Input */}
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileUpload}
+                  accept="application/pdf"
+                  style={{ display: 'none' }}
+                />
+
                 <p className="text-xs text-center text-gray-500 mt-2">
                   Admin-only access
                 </p>
@@ -183,11 +309,15 @@ const CompanyReferencesView = ({ data, userInfo, loading,userId }) => {
               <div className="flex items-center space-x-4">
                 <span className="flex items-center space-x-1">
                   <CheckCircle2 className="w-3 h-3" />
-                  <span>Secure download</span>
+                  <span>Secure upload/download</span>
                 </span>
                 <span className="flex items-center space-x-1">
                   <File className="w-3 h-3" />
-                  <span>PDF format</span>
+                  <span>PDF format only</span>
+                </span>
+                <span className="flex items-center space-x-1">
+                 
+                  
                 </span>
               </div>
               <span className="text-gray-400">
