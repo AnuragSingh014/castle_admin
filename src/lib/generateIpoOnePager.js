@@ -1,15 +1,26 @@
 import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
 
-// Helper function to sanitize text for PDF
+// Enhanced helper function to sanitize text for PDF
 const sanitizeTextForPdf = (text) => {
   if (!text) return text;
-  return text.toString().replace(/₹/g, 'Rs.');
+  return text.toString()
+    .replace(/₹/g, 'Rs.')
+    .replace(/\n/g, ' ')  // Replace newlines with spaces
+    .replace(/\r/g, ' ')  // Replace carriage returns
+    .replace(/\t/g, ' ')  // Replace tabs
+    .replace(/[\u0000-\u001F\u007F-\u009F]/g, '') // Remove control characters
+    .replace(/[""]/g, '"')  // Replace smart quotes
+    .replace(/['']/g, "'")  // Replace smart apostrophes
+    .replace(/[–—]/g, '-')  // Replace em/en dashes
+    .replace(/…/g, '...')   // Replace ellipsis
+    .replace(/\s+/g, ' ')  // Replace multiple spaces with single space
+    .trim();
 };
 
 // Helper function to keep text until first complete sentence
 const smartTruncateToSentence = (text, minLength = 40) => {
   if (!text) return '';
-  text = text.toString().trim();
+  text = sanitizeTextForPdf(text).trim(); // Apply sanitization first
   
   // If text is short enough, return as-is
   if (text.length <= minLength) return text;
@@ -101,7 +112,7 @@ export async function createIpoOnePagerPdf(data) {
       borderWidth: 0.5
     });
     
-    currentPage.drawText(title.toUpperCase(), {
+    currentPage.drawText(sanitizeTextForPdf(title.toUpperCase()), {
       x: x + 8,
       y: y + 2,
       size: typography.sectionHeader.size,
@@ -116,7 +127,8 @@ export async function createIpoOnePagerPdf(data) {
   const drawStyledText = (text, x, y, width, style, maxLines = 8) => {
     if (!text) return y;
     
-    const words = text.split(' ');
+    const sanitizedText = sanitizeTextForPdf(text); // Sanitize the text
+    const words = sanitizedText.split(' ');
     const lines = [];
     let currentLine = '';
     
@@ -157,7 +169,7 @@ export async function createIpoOnePagerPdf(data) {
 
   const hasValidContent = (content) => {
     if (!content) return false;
-    const cleaned = content.toString().trim().toLowerCase();
+    const cleaned = sanitizeTextForPdf(content).toLowerCase();
     return cleaned.length > 0 && 
            !['no business overview provided.', 'no industry overview provided.', 
              'no fund utilization data provided.', 'not provided', 'n/a'].includes(cleaned);
@@ -167,7 +179,7 @@ export async function createIpoOnePagerPdf(data) {
   let currentY = pageHeight - 40;
 
   // 1. COMPANY HEADER
-  const companyName = data.companyInfo?.companyName || 'COMPANY NAME';
+  const companyName = sanitizeTextForPdf(data.companyInfo?.companyName || 'COMPANY NAME');
   
   currentPage.drawText(companyName.toUpperCase(), {
     x: margin,
@@ -196,7 +208,7 @@ export async function createIpoOnePagerPdf(data) {
     borderWidth: 0.5
   });
   
-  currentPage.drawText(fundingType, {
+  currentPage.drawText(sanitizeTextForPdf(fundingType), {
     x: margin + 8,
     y: currentY - 15,
     size: typography.h3.size,
@@ -216,7 +228,7 @@ export async function createIpoOnePagerPdf(data) {
       borderWidth: 0.5
     });
     
-    currentPage.drawText(specificPurpose, {
+    currentPage.drawText(sanitizeTextForPdf(specificPurpose), {
       x: margin + fundingBoxWidth + 23,
       y: currentY - 15,
       size: typography.h3.size,
@@ -370,7 +382,7 @@ export async function createIpoOnePagerPdf(data) {
           });
           
           // Draw the year label first
-          currentPage.drawText(`${yearLabel}: `, {
+          currentPage.drawText(sanitizeTextForPdf(`${yearLabel}: `), {
             x: rightColumnX + 20,
             y: rightY - 7,
             size: typography.small.size,
@@ -403,7 +415,7 @@ export async function createIpoOnePagerPdf(data) {
           // Draw wrapped value lines
           let valueY = rightY - 7;
           valueLines.slice(0, 3).forEach((line, lineIndex) => { // Max 3 lines per item
-            currentPage.drawText(line, {
+            currentPage.drawText(sanitizeTextForPdf(line), {
               x: rightColumnX + 20 + (lineIndex === 0 ? yearWidth : 0),
               y: valueY,
               size: typography.small.size,
@@ -584,9 +596,9 @@ export async function createIpoOnePagerPdf(data) {
     const peerData = data.businessOverview.peerAnalysis;
     const validPeers = peerData.companyNames
       .map((name, index) => ({
-        name: name || 'N/A',
-        revenue: peerData.revenue?.[index] || 'N/A',
-        basicEps: peerData.basicEps?.[index] || 'N/A'
+        name: sanitizeTextForPdf(name || 'N/A'),
+        revenue: sanitizeTextForPdf(peerData.revenue?.[index] || 'N/A'),
+        basicEps: sanitizeTextForPdf(peerData.basicEps?.[index] || 'N/A')
       }))
       .filter(peer => peer.name && peer.name !== 'N/A' && peer.name.trim() !== '')
       .slice(0, 4);
